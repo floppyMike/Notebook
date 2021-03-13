@@ -1,0 +1,3 @@
+[submodule "extern/CustomLibrary"]
+	path = extern/CustomLibrary
+	url = https://github.com/floppyMike/CustomLibrary.git
