@@ -31,9 +31,9 @@ public:
 		case SDL_MOUSEBUTTONUP: m_press = false; break;
 		case SDL_MOUSEMOTION:
 			if (m_press)
-				m_dots_loc.push_back({ e.motion.x - 25, e.motion.y - 25 });
+				m_dots_loc.push_back({ e.motion.x - (m_dim >> 1), e.motion.y - (m_dim >> 1) });
 			break;
-
+		case SDL_MOUSEWHEEL: m_dim += e.wheel.y; break;
 		}
 	}
 	void update() {}
@@ -47,12 +47,9 @@ public:
 
 		for (SDL_Point p : m_dots_loc)
 		{
-			const SDL_Rect dest = { p.x, p.y, 50, 50 };
+			const SDL_Rect dest = { p.x, p.y, m_dim, m_dim };
 			SDL_RenderCopy(m_rend.get(), m_dot.get(), nullptr, &dest);
 		}
-
-		SDL_SetRenderDrawColor(m_rend.get(), sdl::BLACK.r, sdl::BLACK.g, sdl::BLACK.b, sdl::BLACK.a);
-		SDL_RenderDrawPoints(m_rend.get(), m_dots_loc.data(), m_dots_loc.size());
 
 		// Render Buffer
 		SDL_RenderPresent(m_rend.get());
@@ -66,6 +63,7 @@ private:
 	bool				   m_press = false;
 
 	sdl::Texture m_dot;
+	int			 m_dim = 8;
 };
 
 auto main() -> int
