@@ -1,6 +1,8 @@
 #include <SDL.h>
 #include <CustomLibrary/SDL/All.h>
 
+#include <CustomLibrary/Error.h>
+
 using namespace ctl;
 
 class App
@@ -16,6 +18,8 @@ public:
 		m_rend.reset(SDL_CreateRenderer(m_win.get(), -1, SDL_RENDERER_ACCELERATED));
 		if (!m_rend)
 			throw std::runtime_error(SDL_GetError());
+
+		ASSERT(m_dot = sdl::texture_from_bmp(m_rend.get(), "res/Dot.bmp"), "Texture not found.");
 	}
 
 	void pre_pass() {}
@@ -25,7 +29,11 @@ public:
 		{
 		case SDL_MOUSEBUTTONDOWN: m_press = true; break;
 		case SDL_MOUSEBUTTONUP: m_press = false; break;
-		case SDL_MOUSEMOTION: if (m_press) m_dots.push_back({ e.motion.x, e.motion.y }); break;
+		case SDL_MOUSEMOTION:
+			if (m_press)
+				m_dots_loc.push_back({ e.motion.x - 25, e.motion.y - 25 });
+			break;
+
 		}
 	}
 	void update() {}
@@ -37,8 +45,14 @@ public:
 		// 	Clear window
 		SDL_RenderClear(m_rend.get());
 
+		for (SDL_Point p : m_dots_loc)
+		{
+			const SDL_Rect dest = { p.x, p.y, 50, 50 };
+			SDL_RenderCopy(m_rend.get(), m_dot.get(), nullptr, &dest);
+		}
+
 		SDL_SetRenderDrawColor(m_rend.get(), sdl::BLACK.r, sdl::BLACK.g, sdl::BLACK.b, sdl::BLACK.a);
-		SDL_RenderDrawPoints(m_rend.get(), m_dots.data(), m_dots.size());
+		SDL_RenderDrawPoints(m_rend.get(), m_dots_loc.data(), m_dots_loc.size());
 
 		// Render Buffer
 		SDL_RenderPresent(m_rend.get());
@@ -48,8 +62,10 @@ private:
 	sdl::Window	  m_win;
 	sdl::Renderer m_rend;
 
-	std::vector<SDL_Point> m_dots;
+	std::vector<SDL_Point> m_dots_loc;
 	bool				   m_press = false;
+
+	sdl::Texture m_dot;
 };
 
 auto main() -> int
