@@ -18,8 +18,6 @@ public:
 		m_rend.reset(SDL_CreateRenderer(m_win.get(), -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE));
 		if (!m_rend)
 			throw std::runtime_error(SDL_GetError());
-
-		ASSERT(m_dot = sdl::texture_from_bmp(m_rend.get(), "res/Dot.bmp"), "Texture not found.");
 	}
 
 	void pre_pass() {}
@@ -28,6 +26,9 @@ public:
 		switch (e.type)
 		{
 		case SDL_MOUSEBUTTONDOWN:
+			if (e.button.button != SDL_BUTTON_LEFT)
+				break;
+
 			m_press = true;
 			ASSERT(m_dots = sdl::Texture(
 					   SDL_CreateTexture(m_rend.get(), SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 640, 480)),
@@ -52,8 +53,9 @@ public:
 			{
 				SDL_SetRenderTarget(m_rend.get(), m_dots.get());
 
+				SDL_SetRenderDrawColor(m_rend.get(), sdl::BLACK.r, sdl::BLACK.g, sdl::BLACK.b, sdl::BLACK.a);
 				const SDL_Rect dest = { e.motion.x - (m_dim >> 1), e.motion.y - (m_dim >> 1), m_dim, m_dim };
-				SDL_RenderCopy(m_rend.get(), m_dot.get(), nullptr, &dest);
+				SDL_RenderFillRect(m_rend.get(), &dest);
 
 				SDL_SetRenderTarget(m_rend.get(), nullptr);
 			}
@@ -87,8 +89,7 @@ private:
 	bool					  m_press = false;
 	std::vector<sdl::Texture> m_prev_dots;
 
-	sdl::Texture m_dot;
-	int			 m_dim = 8;
+	int m_dim = 8;
 };
 
 auto main() -> int
