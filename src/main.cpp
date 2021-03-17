@@ -18,6 +18,8 @@ public:
 		m_rend.reset(SDL_CreateRenderer(m_win.get(), -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE));
 		if (!m_rend)
 			throw std::runtime_error(SDL_GetError());
+
+		m_dot = mth::gen_circle_filled(m_dim >> 1);
 	}
 
 	void pre_pass() {}
@@ -54,14 +56,33 @@ public:
 				SDL_SetRenderTarget(m_rend.get(), m_dots.get());
 
 				SDL_SetRenderDrawColor(m_rend.get(), sdl::BLACK.r, sdl::BLACK.g, sdl::BLACK.b, sdl::BLACK.a);
-				const SDL_Rect dest = { e.motion.x - (m_dim >> 1), e.motion.y - (m_dim >> 1), m_dim, m_dim };
-				SDL_RenderFillRect(m_rend.get(), &dest);
+
+				// Draw circle
+				std::vector<SDL_Point> buf(m_dot.size());
+				std::transform(m_dot.begin(), m_dot.end(), buf.begin(), [&e](mth::Point<int> p) {
+					return SDL_Point{ p.x + e.motion.x, p.y + e.motion.y };
+				});
+				SDL_RenderDrawPoints(m_rend.get(), buf.data(), m_dot.size());
+
+				// Draw connecting line
+				for (auto i = -(m_dim >> 1); i < (m_dim >> 1); ++i)
+				{
+					SDL_RenderDrawLine(m_rend.get(), e.motion.x - e.motion.xrel, e.motion.y - e.motion.yrel + i,
+									   e.motion.x, e.motion.y + i);
+
+					SDL_RenderDrawLine(m_rend.get(), e.motion.x - e.motion.xrel + i, e.motion.y - e.motion.yrel,
+									   e.motion.x + i, e.motion.y);
+				}
 
 				SDL_SetRenderTarget(m_rend.get(), nullptr);
 			}
+
 			break;
 
-		case SDL_MOUSEWHEEL: m_dim += e.wheel.y; break;
+		case SDL_MOUSEWHEEL:
+			m_dim += e.wheel.y;
+			m_dot = mth::gen_circle_filled(m_dim >> 1);
+			break;
 		}
 	}
 	void update() {}
@@ -89,7 +110,8 @@ private:
 	bool					  m_press = false;
 	std::vector<sdl::Texture> m_prev_dots;
 
-	int m_dim = 8;
+	int							 m_dim = 8;
+	std::vector<mth::Point<int>> m_dot;
 };
 
 auto main() -> int
