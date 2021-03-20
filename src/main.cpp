@@ -7,28 +7,12 @@ using namespace ctl;
 
 struct Line
 {
-	Line() = default;
-
-	Line(uint8_t r, std::vector<SDL_Point> &&p)
-		: radius(r)
-		, points(std::move(p))
-	{
-	}
-
-	uint8_t				   radius = 8;
+	uint8_t				   radius = 1;
 	std::vector<SDL_Point> points;
 };
 
 struct Texture
 {
-	Texture() = default;
-
-	Texture(SDL_Rect r, sdl::Texture &&t)
-		: dim(r)
-		, data(std::move(t))
-	{
-	}
-
 	SDL_Rect	 dim;
 	sdl::Texture data;
 };
@@ -37,7 +21,7 @@ auto create_empty(SDL_Renderer *r, int w, int h) noexcept -> sdl::Texture
 {
 	sdl::Texture t;
 	ASSERT(t = sdl::Texture(SDL_CreateTexture(r, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, w, h)),
-		   "Texture dot creation failed.");
+		   SDL_GetError());
 
 	SDL_SetTextureBlendMode(t.get(), SDL_BLENDMODE_BLEND);
 
@@ -49,7 +33,34 @@ auto create_empty(SDL_Renderer *r, int w, int h) noexcept -> sdl::Texture
 	return t;
 }
 
-auto shrink_to_fit(Line &l, Texture &t) -> Texture {}
+auto shrink_to_fit(SDL_Renderer *r, const Line &l, const sdl::Texture &t) -> Texture
+{
+	SDL_Point min = { std::numeric_limits<int>::max(), std::numeric_limits<int>::max() }, max = { 0, 0 };
+	for (const SDL_Point &p : l.points)
+	{
+		min.x = std::min(min.x, p.x);
+		min.y = std::min(min.y, p.y);
+		max.x = std::max(max.x, p.x);
+		max.y = std::max(max.y, p.y);
+	}
+
+	min.x -= l.radius;
+	min.y -= l.radius;
+	max.x += l.radius;
+	max.y += l.radius;
+
+	const auto w = max.x - min.x, h = max.y - min.y;
+
+	Texture tex = { .dim  = { .x = min.x, .y = min.y, .w = w + l.radius * 2, .h = h + l.radius * 2 },
+					.data = create_empty(r, w + l.radius * 2, h + l.radius * 2) };
+
+	SDL_SetRenderTarget(r, tex.data.get());
+	SDL_SetRenderDrawColor(r, sdl::BLACK.r, sdl::BLACK.g, sdl::BLACK.b, sdl::BLACK.a);
+	SDL_RenderCopy(r, t.get(), &tex.dim, nullptr);
+	SDL_SetRenderTarget(r, nullptr);
+
+	return tex;
+}
 
 auto generate_draw_circle(const int r) noexcept { return mth::gen_circle_filled(r); }
 
@@ -67,7 +78,7 @@ public:
 		if (!m_rend)
 			throw std::runtime_error(SDL_GetError());
 
-		m_circle_pattern = generate_draw_circle(m_current_rad);
+		m_circle_pattern = generate_draw_circle(m_target_line.radius);
 	}
 
 	void pre_pass() {}
@@ -80,7 +91,6 @@ public:
 			{
 				m_press_left	 = true;
 				m_target_texture = create_empty(m_rend.get(), 640, 480);
-				// m_idx = 0;
 			}
 			else if (e.button.button == SDL_BUTTON_RIGHT)
 			{
@@ -91,8 +101,9 @@ public:
 
 		case SDL_MOUSEBUTTONUP:
 			m_press_left = false;
-			m_textures.emplace_back(SDL_Rect{ 0, 0, 640, 480 }, std::move(m_target_texture));
-			// m_points_idx.emplace_back(m_idx);
+			m_textures.push_back(shrink_to_fit(m_rend.get(), m_target_line, m_target_texture));
+			m_lines.push_back(std::move(m_target_line));
+
 			break;
 
 		case SDL_MOUSEMOTION:
@@ -110,7 +121,7 @@ public:
 				SDL_RenderDrawPoints(m_rend.get(), buf.data(), m_circle_pattern.size());
 
 				// Draw connecting line
-				for (int i = -m_current_rad, end = m_current_rad; i < end; ++i)
+				for (int i = -m_target_line.radius, end = m_target_line.radius; i < end; ++i)
 				{
 					SDL_RenderDrawLine(m_rend.get(), e.motion.x - e.motion.xrel, e.motion.y - e.motion.yrel + i,
 									   e.motion.x, e.motion.y + i);
@@ -119,8 +130,8 @@ public:
 									   e.motion.x + i, e.motion.y);
 				}
 
-				m_target_line.points.push_back({ e.motion.x - m_current_rad, e.motion.y - m_current_rad });
-				// ++m_idx;
+				m_target_line.points.push_back(
+					{ e.motion.x - m_target_line.radius, e.motion.y - m_target_line.radius });
 
 				SDL_SetRenderTarget(m_rend.get(), nullptr);
 			}
@@ -141,8 +152,8 @@ public:
 			break;
 
 		case SDL_MOUSEWHEEL:
-			m_current_rad += e.wheel.y;
-			m_circle_pattern = generate_draw_circle(m_current_rad);
+			m_target_line.radius += e.wheel.y;
+			m_circle_pattern = generate_draw_circle(m_target_line.radius);
 			break;
 		}
 	}
@@ -168,7 +179,6 @@ private:
 	sdl::Renderer m_rend;
 
 	sdl::Texture m_target_texture;
-	uint8_t		 m_current_rad = 1;
 	Line		 m_target_line;
 
 	bool m_press_left  = false;
@@ -176,11 +186,6 @@ private:
 
 	std::vector<Texture> m_textures;
 	std::vector<Line>	 m_lines;
-	size_t				 m_idx;
-
-	// size_t				  m_idx;
-	// std::vector<SDL_Rect> m_points;
-	// std::vector<size_t>	  m_points_idx = { 0 };
 
 	std::vector<mth::Point<int>> m_circle_pattern;
 };
