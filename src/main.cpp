@@ -49,10 +49,8 @@ auto shrink_to_fit(SDL_Renderer *r, const Line &l, const sdl::Texture &t) -> Tex
 	max.x += l.radius;
 	max.y += l.radius;
 
-	const auto w = max.x - min.x, h = max.y - min.y;
-
-	Texture tex = { .dim  = { .x = min.x, .y = min.y, .w = w + l.radius * 2, .h = h + l.radius * 2 },
-					.data = create_empty(r, w + l.radius * 2, h + l.radius * 2) };
+	const auto w = max.x - min.x + l.radius * 2, h = max.y - min.y + l.radius * 2;
+	Texture	   tex = { .dim = { .x = min.x, .y = min.y, .w = w, .h = h }, .data = create_empty(r, w, h) };
 
 	SDL_SetRenderTarget(r, tex.data.get());
 	SDL_SetRenderDrawColor(r, sdl::BLACK.r, sdl::BLACK.g, sdl::BLACK.b, sdl::BLACK.a);
@@ -100,9 +98,16 @@ public:
 			break;
 
 		case SDL_MOUSEBUTTONUP:
-			m_press_left = false;
-			m_textures.push_back(shrink_to_fit(m_rend.get(), m_target_line, m_target_texture));
-			m_lines.push_back(std::move(m_target_line));
+			if (m_press_left)
+			{
+				m_press_left = false;
+				m_textures.push_back(shrink_to_fit(m_rend.get(), m_target_line, m_target_texture));
+				m_lines.push_back(std::move(m_target_line));
+			}
+			else if (m_press_right)
+			{
+				m_press_right = false;
+			}
 
 			break;
 
@@ -113,22 +118,9 @@ public:
 
 				SDL_SetRenderDrawColor(m_rend.get(), sdl::BLACK.r, sdl::BLACK.g, sdl::BLACK.b, sdl::BLACK.a);
 
-				// Draw circle
-				std::vector<SDL_Point> buf(m_circle_pattern.size());
-				std::transform(m_circle_pattern.begin(), m_circle_pattern.end(), buf.begin(), [&e](mth::Point<int> p) {
-					return SDL_Point{ p.x + e.motion.x, p.y + e.motion.y };
-				});
-				SDL_RenderDrawPoints(m_rend.get(), buf.data(), m_circle_pattern.size());
-
-				// Draw connecting line
-				for (int i = -m_target_line.radius, end = m_target_line.radius; i < end; ++i)
-				{
-					SDL_RenderDrawLine(m_rend.get(), e.motion.x - e.motion.xrel, e.motion.y - e.motion.yrel + i,
-									   e.motion.x, e.motion.y + i);
-
-					SDL_RenderDrawLine(m_rend.get(), e.motion.x - e.motion.xrel + i, e.motion.y - e.motion.yrel,
-									   e.motion.x + i, e.motion.y);
-				}
+				draw_circle({ e.motion.x, e.motion.y });
+				draw_connecting_line({ e.motion.x - e.motion.xrel, e.motion.y - e.motion.yrel },
+									 { e.motion.x, e.motion.y });
 
 				m_target_line.points.push_back(
 					{ e.motion.x - m_target_line.radius, e.motion.y - m_target_line.radius });
@@ -137,16 +129,15 @@ public:
 			}
 			if (m_press_right)
 			{
-				// const auto mouse	 = SDL_Point{ e.motion.x, e.motion.y };
-				// const auto intersect = std::find_if(
-				// 	m_points.rbegin(), m_points.rend(),
-				// 	[m = SDL_Point{ e.motion.x, e.motion.y }](const SDL_Rect r) { return SDL_PointInRect(&m, &r); });
+				const auto intersects = find_intersections({ e.motion.x, e.motion.y });
 
-				// if (intersect == m_points.rend())
-				// 	break;
-
-				// const auto idx = std::lower_bound(m_points_idx.begin(), m_points_idx.end(),
-				// 								  std::distance(intersect, m_points.rend()));
+				for (size_t i : intersects)
+				{
+					std::swap(m_textures[i], m_textures.back());
+					std::swap(m_lines[i], m_lines.back());
+					m_textures.erase(m_textures.end() - 1);
+					m_lines.erase(m_lines.end() - 1);
+				}
 			}
 
 			break;
@@ -162,7 +153,6 @@ public:
 	{
 		SDL_SetRenderDrawColor(m_rend.get(), sdl::WHITE.r, sdl::WHITE.g, sdl::WHITE.b, sdl::WHITE.a);
 
-		// 	Clear window
 		SDL_RenderClear(m_rend.get());
 
 		for (const Texture &t : m_textures) SDL_RenderCopy(m_rend.get(), t.data.get(), nullptr, &t.dim);
@@ -170,7 +160,6 @@ public:
 		if (!m_target_line.points.empty())
 			SDL_RenderCopy(m_rend.get(), m_target_texture.get(), nullptr, nullptr);
 
-		// Render Buffer
 		SDL_RenderPresent(m_rend.get());
 	}
 
@@ -188,6 +177,47 @@ private:
 	std::vector<Line>	 m_lines;
 
 	std::vector<mth::Point<int>> m_circle_pattern;
+
+	void draw_circle(const SDL_Point mouse) const
+	{
+		std::vector<SDL_Point> buf(m_circle_pattern.size());
+		std::transform(m_circle_pattern.begin(), m_circle_pattern.end(), buf.begin(), [&mouse](mth::Point<int> p) {
+			return SDL_Point{ p.x + mouse.x, p.y + mouse.y };
+		});
+		SDL_RenderDrawPoints(m_rend.get(), buf.data(), m_circle_pattern.size());
+	}
+
+	void draw_connecting_line(const SDL_Point from, const SDL_Point to) const
+	{
+		// Draw connecting line
+		for (int i = -m_target_line.radius, end = m_target_line.radius; i < end; ++i)
+		{
+			SDL_RenderDrawLine(m_rend.get(), from.x, from.y + i, to.x, to.y + i);
+			SDL_RenderDrawLine(m_rend.get(), from.x + i, from.y, to.x + i, to.y);
+		}
+	}
+
+	[[nodiscard]] auto find_intersections(const SDL_Point p) const -> std::vector<size_t>
+	{
+		std::vector<size_t> res;
+
+		for (size_t i = 0; i < m_textures.size(); ++i)
+			if (SDL_PointInRect(&p, &m_textures[i].dim))
+				res.emplace_back(i);
+
+		res.erase(std::remove_if(
+					  res.begin(), res.end(),
+					  [this, p](const auto i) {
+						  return std::none_of(
+							  m_lines[i].points.begin(), m_lines[i].points.end(), [this, i, p](const SDL_Point &l) {
+								  const SDL_Rect box = { l.x, l.y, m_lines[i].radius * 2, m_lines[i].radius * 2 };
+								  return SDL_PointInRect(&p, &box);
+							  });
+					  }),
+				  res.end());
+
+		return res;
+	}
 };
 
 auto main() -> int
