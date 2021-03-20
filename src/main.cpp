@@ -87,8 +87,11 @@ public:
 		case SDL_MOUSEBUTTONDOWN:
 			if (e.button.button == SDL_BUTTON_LEFT)
 			{
-				m_press_left	 = true;
-				m_target_texture = create_empty(m_rend.get(), 640, 480);
+				m_press_left = true;
+
+				int w, h;
+				SDL_GetWindowSize(m_win.get(), &w, &h);
+				m_target_texture = { .dim = { 0, 0, w, h }, .data = create_empty(m_rend.get(), w, h) };
 			}
 			else if (e.button.button == SDL_BUTTON_RIGHT)
 			{
@@ -101,7 +104,7 @@ public:
 			if (m_press_left)
 			{
 				m_press_left = false;
-				m_textures.push_back(shrink_to_fit(m_rend.get(), m_target_line, m_target_texture));
+				m_textures.push_back(shrink_to_fit(m_rend.get(), m_target_line, m_target_texture.data));
 				m_lines.push_back(std::move(m_target_line));
 			}
 			else if (m_press_right)
@@ -114,7 +117,7 @@ public:
 		case SDL_MOUSEMOTION:
 			if (m_press_left)
 			{
-				SDL_SetRenderTarget(m_rend.get(), m_target_texture.get());
+				SDL_SetRenderTarget(m_rend.get(), m_target_texture.data.get());
 
 				SDL_SetRenderDrawColor(m_rend.get(), sdl::BLACK.r, sdl::BLACK.g, sdl::BLACK.b, sdl::BLACK.a);
 
@@ -158,7 +161,7 @@ public:
 		for (const Texture &t : m_textures) SDL_RenderCopy(m_rend.get(), t.data.get(), nullptr, &t.dim);
 
 		if (!m_target_line.points.empty())
-			SDL_RenderCopy(m_rend.get(), m_target_texture.get(), nullptr, nullptr);
+			SDL_RenderCopy(m_rend.get(), m_target_texture.data.get(), nullptr, &m_target_texture.dim);
 
 		SDL_RenderPresent(m_rend.get());
 	}
@@ -167,8 +170,8 @@ private:
 	sdl::Window	  m_win;
 	sdl::Renderer m_rend;
 
-	sdl::Texture m_target_texture;
-	Line		 m_target_line;
+	Texture m_target_texture;
+	Line	m_target_line;
 
 	bool m_press_left  = false;
 	bool m_press_right = false;
