@@ -137,9 +137,15 @@ public:
 
 			break;
 
-		case SDL_MOUSEWHEEL:
-			m_target_line.radius += e.wheel.y;
+		case SDL_KEYDOWN:
+			if (e.key.keysym.sym == SDLK_UP)
+				m_target_line.radius += 1;
+			else if (e.key.keysym.sym == SDLK_DOWN)
+				m_target_line.radius -= 1;
+
+			std::clog << "Radius: " << +m_target_line.radius << std::endl;
 			m_circle_pattern = generate_draw_circle(m_target_line.radius);
+
 			break;
 		}
 	}
