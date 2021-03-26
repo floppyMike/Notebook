@@ -132,15 +132,7 @@ public:
 			}
 			if (m_press_right)
 			{
-				const auto intersects = find_intersections({ e.motion.x, e.motion.y });
-
-				for (size_t i : intersects)
-				{
-					std::swap(m_textures[i], m_textures.back());
-					std::swap(m_lines[i], m_lines.back());
-					m_textures.erase(m_textures.end() - 1);
-					m_lines.erase(m_lines.end() - 1);
-				}
+				for (size_t i : find_intersections({ e.motion.x, e.motion.y })) delete_lines(i);
 			}
 
 			break;
@@ -180,6 +172,14 @@ private:
 	std::vector<Line>	 m_lines;
 
 	std::vector<mth::Point<int>> m_circle_pattern;
+
+	void delete_lines(size_t i)
+	{
+		std::swap(m_textures[i], m_textures.back());
+		std::swap(m_lines[i], m_lines.back());
+		m_textures.erase(m_textures.end() - 1);
+		m_lines.erase(m_lines.end() - 1);
+	}
 
 	void draw_circle(const SDL_Point mouse) const
 	{
