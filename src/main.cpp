@@ -104,7 +104,12 @@ public:
 			if (m_press_left)
 			{
 				m_press_left = false;
-				m_textures.push_back(shrink_to_fit(m_rend.get(), m_target_line, m_target_texture.data));
+
+				auto t = shrink_to_fit(m_rend.get(), m_target_line, m_target_texture.data);
+				// const auto r = mth::Rect{ m_cam.screen_world(mth::Point{ t.dim.x, t.dim.y }), m_cam.screen_world(mth::Dim{ t.dim.w, t.dim.h }) };
+				// t.dim = { r.x, r.y, r.w, r.h };
+
+				m_textures.push_back(std::move(t));
 				m_lines.push_back(std::move(m_target_line));
 			}
 			else if (m_press_right)
@@ -147,6 +152,15 @@ public:
 			m_circle_pattern = generate_draw_circle(m_target_line.radius);
 
 			break;
+
+		case SDL_MOUSEWHEEL:
+		{
+			mth::Point<int> mouse_p;
+			SDL_GetMouseState(&mouse_p.x, &mouse_p.y);
+			m_cam.zoom(1.F + e.wheel.y / 2.F, mouse_p);
+
+			break;
+		}
 		}
 	}
 	void update() {}
@@ -156,10 +170,18 @@ public:
 
 		SDL_RenderClear(m_rend.get());
 
-		for (const Texture &t : m_textures) SDL_RenderCopy(m_rend.get(), t.data.get(), nullptr, &t.dim);
+		for (const Texture &t : m_textures)
+		{
+			const auto world = m_cam.world_screen(mth::Rect{ t.dim.x, t.dim.y, t.dim.w, t.dim.h });
+			SDL_RenderCopy(m_rend.get(), t.data.get(), nullptr, &sdl::to_rect(world));
+		}
 
 		if (!m_target_line.points.empty())
+		{
+			// const auto world = m_cam.world_screen(mth::Rect{ m_target_texture.dim.x, m_target_texture.dim.y,
+			// 												 m_target_texture.dim.w, m_target_texture.dim.h });
 			SDL_RenderCopy(m_rend.get(), m_target_texture.data.get(), nullptr, &m_target_texture.dim);
+		}
 
 		SDL_RenderPresent(m_rend.get());
 	}
@@ -174,6 +196,7 @@ private:
 	bool m_press_left  = false;
 	bool m_press_right = false;
 
+	sdl::Camera2D		 m_cam;
 	std::vector<Texture> m_textures;
 	std::vector<Line>	 m_lines;
 
