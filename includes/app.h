@@ -17,7 +17,7 @@ class App
 public:
 	App()
 	{
-		m_win.reset(SDL_CreateWindow("Apollo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480,
+		m_win.reset(SDL_CreateWindow("Scribe", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480,
 									 SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE));
 		if (!m_win)
 			throw std::runtime_error(SDL_GetError());
