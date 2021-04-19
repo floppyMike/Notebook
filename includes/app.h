@@ -3,6 +3,7 @@
 #include <SDL.h>
 #include <CustomLibrary/SDL/All.h>
 #include <CustomLibrary/Error.h>
+#include <CustomLibrary/Collider.h>
 
 #include "line.h"
 #include "texture.h"
@@ -72,7 +73,7 @@ public:
 				trace_point({ e.motion.x, e.motion.y });
 			}
 			else if (m_press_right)
-				for (size_t i : find_intersections({ e.motion.x, e.motion.y })) delete_lines(i);
+				for (size_t i : find_intersections(m_cam.screen_world(mth::Point{ e.motion.x, e.motion.y }))) delete_lines(i);
 			else if (m_press_middle)
 				m_cam.translate(-e.motion.xrel, -e.motion.yrel);
 
@@ -131,7 +132,7 @@ private:
 	void delete_lines(size_t i);
 	void draw_circle(mth::Point<int> mouse) const;
 	void draw_connecting_line(mth::Point<int> from, mth::Point<int> to) const;
-	auto find_intersections(mth::Point<int> p) const -> std::vector<size_t>;
+	auto find_intersections(mth::Point<float> p) const -> std::vector<size_t>;
 	auto empty_texture() const -> Texture<int>;
 	void add_texture(Texture<int> &&t, const Line<int> &ref);
 	void add_line(const Line<int> &l);
@@ -215,26 +216,24 @@ void App::draw_connecting_line(const mth::Point<int> from, const mth::Point<int>
 	}
 }
 
-auto App::find_intersections(const mth::Point<int> p) const -> std::vector<size_t>
+auto App::find_intersections(const mth::Point<float> p) const -> std::vector<size_t>
 {
 	std::vector<size_t> res;
 
-	// for (size_t i = 0; i < m_textures.size(); ++i)
-	// 	if (SDL_PointInRect(&p, &m_textures[i].dim))
-	// 		res.emplace_back(i);
+	for (size_t i = 0; i < m_textures.size(); ++i)
+		if (mth::collision(p, m_textures[i].dim))
+			res.emplace_back(i);
 
-	/*
 	res.erase(std::remove_if(
 				  res.begin(), res.end(),
 				  [this, p](const auto i) {
 					  return std::none_of(
-						  m_lines[i].points.begin(), m_lines[i].points.end(), [this, i, p](const SDL_Point &l) {
-							  const SDL_Rect box = { l.x, l.y, m_lines[i].radius * 2, m_lines[i].radius * 2 };
-							  return SDL_PointInRect(&p, &box);
+						  m_lines[i].points.begin(), m_lines[i].points.end(), [this, i, p](const mth::Point<float> &l) {
+							  const mth::Rect box = { l.x, l.y, m_lines[i].radius * 2, m_lines[i].radius * 2 };
+							  return mth::collision(p, box);
 						  });
 				  }),
 			  res.end());
-			  */
 
 	return res;
 }
