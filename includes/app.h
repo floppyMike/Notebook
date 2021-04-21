@@ -73,20 +73,35 @@ public:
 				trace_point({ e.motion.x, e.motion.y });
 			}
 			else if (m_press_right)
-				for (size_t i : find_intersections(m_cam.screen_world(mth::Point{ e.motion.x, e.motion.y }))) delete_lines(i);
+				for (size_t i : find_intersections(m_cam.screen_world(mth::Point{ e.motion.x, e.motion.y })))
+					delete_lines(i);
 			else if (m_press_middle)
 				m_cam.translate(-e.motion.xrel, -e.motion.yrel);
 
 			break;
 
 		case SDL_KEYDOWN:
-			if (e.key.keysym.sym == SDLK_UP)
-				m_target_line.radius += 1;
-			else if (e.key.keysym.sym == SDLK_DOWN)
-				m_target_line.radius -= 1;
+			switch (e.key.keysym.sym)
+			{
+			case SDLK_UP:
+			case SDLK_DOWN:
+				switch (e.key.keysym.sym)
+				{
+				case SDLK_UP: m_target_line.radius += 1; break;
+				case SDLK_DOWN: m_target_line.radius -= 1; break;
+				}
+				std::clog << "Radius: " << +m_target_line.radius << std::endl;
+				m_circle_pattern = generate_draw_circle(m_target_line.radius);
+				break;
 
-			std::clog << "Radius: " << +m_target_line.radius << std::endl;
-			m_circle_pattern = generate_draw_circle(m_target_line.radius);
+			case SDLK_r:
+				m_target_line.color = sdl::RED;
+				break;
+
+			case SDLK_b:
+				m_target_line.color = sdl::BLACK;
+				break;
+			}
 
 			break;
 
@@ -97,7 +112,6 @@ public:
 	void render()
 	{
 		SDL_SetRenderDrawColor(m_rend.get(), sdl::WHITE.r, sdl::WHITE.g, sdl::WHITE.b, sdl::WHITE.a);
-
 		SDL_RenderClear(m_rend.get());
 
 		for (const auto &t : m_textures)
@@ -148,15 +162,12 @@ void App::zoom(int factor, float scale)
 	m_cam.zoom(1.F + factor / scale, mouse_p);
 }
 
-void App::trace_point(mth::Point<int> to)
-{
-	m_target_line.points.emplace_back(to.x, to.y);
-}
+void App::trace_point(mth::Point<int> to) { m_target_line.points.emplace_back(to.x, to.y); }
 
 void App::draw_line_to(mth::Point<int> from, mth::Point<int> to)
 {
 	SDL_SetRenderTarget(m_rend.get(), m_target_texture.data.get());
-	SDL_SetRenderDrawColor(m_rend.get(), sdl::BLACK.r, sdl::BLACK.g, sdl::BLACK.b, sdl::BLACK.a);
+	SDL_SetRenderDrawColor(m_rend.get(), m_target_line.color.r, m_target_line.color.g, m_target_line.color.b, m_target_line.color.a);
 
 	draw_circle(to);
 	draw_connecting_line(from, to);
@@ -180,7 +191,7 @@ void App::add_line(const Line<int> &l)
 
 	for (auto p : l.points) points.emplace_back(m_cam.screen_world(p));
 
-	m_lines.push_back({ l.radius, std::move(points) });
+	m_lines.push_back({ l.radius, l.color, std::move(points) });
 }
 
 auto App::empty_texture() const -> Texture<int>
