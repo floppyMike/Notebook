@@ -30,11 +30,12 @@ auto create_empty(SDL_Renderer *r, int w, int h) noexcept -> sdl::Texture
 	return t;
 }
 
-auto shrink_to_fit(SDL_Renderer *r, const Line<int> &l, const sdl::Texture &t) -> Texture<int>
+auto shrink_to_fit(SDL_Renderer *r, const Line<float> &l, const sdl::Texture &t) -> Texture<float>
 {
-	SDL_Point min = { std::numeric_limits<int>::max(), std::numeric_limits<int>::max() }, max = { 0, 0 };
+	SDL_FPoint min = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
+	SDL_FPoint max = { 0.F, 0.F };
 
-	for (const auto &p : l.points)
+	for (const auto &p : l.points) // Find line range inside texture
 	{
 		min.x = std::min(min.x, p.x);
 		min.y = std::min(min.y, p.y);
@@ -47,13 +48,14 @@ auto shrink_to_fit(SDL_Renderer *r, const Line<int> &l, const sdl::Texture &t) -
 	max.x += l.radius;
 	max.y += l.radius;
 
-	const auto w = max.x - min.x + l.radius * 2, h = max.y - min.y + l.radius * 2;
+	const auto w = max.x - min.x;
+	const auto h = max.y - min.y;
 
 	sdl::Texture   tex	= create_empty(r, w, h);
-	const SDL_Rect rect = { min.x, min.y, w, h };
+	const SDL_Rect rect = { static_cast<int>(min.x), static_cast<int>(min.y), static_cast<int>(w),
+							static_cast<int>(h) };
 
 	SDL_SetRenderTarget(r, tex.get());
-	SDL_SetRenderDrawColor(r, sdl::BLACK.r, sdl::BLACK.g, sdl::BLACK.b, sdl::BLACK.a);
 	SDL_RenderCopy(r, t.get(), &rect, nullptr);
 	SDL_SetRenderTarget(r, nullptr);
 
