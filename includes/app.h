@@ -9,17 +9,17 @@
 #include "texture.h"
 #include "draw.h"
 #include "save.h"
+#include "event.h"
 
 using namespace ctl;
-
-auto generate_draw_circle(const int r) noexcept { return mth::gen_circle_filled(r); }
 
 class App
 {
 public:
 	App()
+		: m_canvas(&m_win, &m_rend)
 	{
-		m_win.reset(SDL_CreateWindow("Scribe", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480,
+		m_win.reset(SDL_CreateWindow("Notetaker", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480,
 									 SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE));
 		if (!m_win)
 			throw std::runtime_error(SDL_GetError());
@@ -27,8 +27,6 @@ public:
 		m_rend.reset(SDL_CreateRenderer(m_win.get(), -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE));
 		if (!m_rend)
 			throw std::runtime_error(SDL_GetError());
-
-		m_circle_pattern = generate_draw_circle(m_target_line.radius);
 	}
 
 	void pre_pass() {}
@@ -39,12 +37,9 @@ public:
 		case SDL_MOUSEBUTTONDOWN:
 			switch (e.button.button)
 			{
-			case SDL_BUTTON_LEFT:
-				m_press_left	 = true;
-				m_target_texture = empty_texture();
-				break;
-			case SDL_BUTTON_RIGHT: m_press_right = true; break;
-			case SDL_BUTTON_MIDDLE: m_press_middle = true; break;
+			case SDL_BUTTON_LEFT: m_events.set(KeyEventMap::MOUSE_LEFT, true); break;
+			case SDL_BUTTON_RIGHT: m_events.set(KeyEventMap::MOUSE_RIGHT, true); break;
+			case SDL_BUTTON_MIDDLE: m_events.set(KeyEventMap::MOUSE_MIDDLE, true); break;
 			}
 
 			break;
@@ -52,72 +47,24 @@ public:
 		case SDL_MOUSEBUTTONUP:
 			switch (e.button.button)
 			{
-			case SDL_BUTTON_LEFT:
-				m_press_left = false;
-				m_canvas.emplace(std::move(m_target_texture), std::move(m_target_line));
-				break;
-
-			case SDL_BUTTON_RIGHT: m_press_right = false; break;
-			case SDL_BUTTON_MIDDLE: m_press_middle = false; break;
+			case SDL_BUTTON_LEFT: m_events.set(KeyEventMap::MOUSE_LEFT, false); break;
+			case SDL_BUTTON_RIGHT: m_events.set(KeyEventMap::MOUSE_RIGHT, false); break;
+			case SDL_BUTTON_MIDDLE: m_events.set(KeyEventMap::MOUSE_MIDDLE, false); break;
 			}
 
 			break;
-
-		case SDL_MOUSEMOTION:
-			if (m_press_left)
-			{
-				draw_line_to({ e.motion.x - e.motion.xrel, e.motion.y - e.motion.yrel }, { e.motion.x, e.motion.y });
-				trace_point({ e.motion.x, e.motion.y });
-			}
-			else if (m_press_right)
-				for (size_t i : find_intersections(m_canvas.cam.screen_world(mth::Point{ e.motion.x, e.motion.y })))
-					m_canvas.erase(i);
-			else if (m_press_middle)
-				m_canvas.cam.translate(-e.motion.xrel, -e.motion.yrel);
-
-			break;
-
-		case SDL_KEYDOWN:
-			switch (e.key.keysym.sym)
-			{
-			case SDLK_UP:
-			case SDLK_DOWN:
-				switch (e.key.keysym.sym)
-				{
-				case SDLK_UP: m_target_line.radius += 1; break;
-				case SDLK_DOWN: m_target_line.radius -= 1; break;
-				}
-				std::clog << "Radius: " << +m_target_line.radius << std::endl;
-				m_circle_pattern = generate_draw_circle(m_target_line.radius);
-				break;
-
-			case SDLK_r: m_target_line.color = sdl::RED; break;
-			case SDLK_b: m_target_line.color = sdl::BLACK; break;
-			//case SDLK_s: save("save.xml", m_lines); break;
-			//case SDLK_l:
-			//	m_lines = load("save.xml");
-			//	std::clog << "Found " << m_lines.size() << " lines.\n";
-			//	draw_lines(m_lines);
-			//	break;
-			}
-
-			break;
-
-		case SDL_MOUSEWHEEL: m_canvas.zoom(e.wheel.y, 10.f); break;
 		}
+
+		m_canvas.event(e, m_events);
 	}
+
 	void update() {}
 	void render()
 	{
 		SDL_SetRenderDrawColor(m_rend.get(), sdl::WHITE.r, sdl::WHITE.g, sdl::WHITE.b, sdl::WHITE.a);
 		SDL_RenderClear(m_rend.get());
 
-		m_rend << m_canvas;
-
-		if (!m_target_line.points.empty())
-		{
-			SDL_RenderCopy(m_rend.get(), m_target_texture.data.get(), nullptr, &sdl::to_rect(m_target_texture.dim));
-		}
+		m_canvas.draw();
 
 		SDL_RenderPresent(m_rend.get());
 	}
@@ -126,24 +73,13 @@ private:
 	sdl::Window	  m_win;
 	sdl::Renderer m_rend;
 
-	Texture<int> m_target_texture;
-	Line<float>	 m_target_line;
-
-	bool m_press_left = false, m_press_right = false, m_press_middle = false;
+	KeyEvent m_events;
 
 	Canvas m_canvas;
 
-	std::vector<mth::Point<int>> m_circle_pattern;
-
-	void draw_circle(mth::Point<int> mouse) const;
-	void draw_connecting_line(mth::Point<int> from, mth::Point<int> to) const;
-	auto find_intersections(mth::Point<float> p) const -> std::vector<size_t>;
-	auto empty_texture() const -> Texture<int>;
-	void draw_line_to(mth::Point<int> from, mth::Point<int> to);
-	void trace_point(mth::Point<int> to);
-	void draw_lines(const std::vector<Line<float>> &ls);
 };
 
+/*
 void App::draw_lines(const std::vector<Line<float>> &ls)
 {
 	SDL_SetRenderTarget(m_rend.get(), nullptr);
@@ -163,66 +99,4 @@ void App::draw_lines(const std::vector<Line<float>> &ls)
 
 	SDL_SetRenderTarget(m_rend.get(), nullptr);
 }
-
-void App::trace_point(mth::Point<int> to) { m_target_line.points.emplace_back(to.x, to.y); }
-
-void App::draw_line_to(mth::Point<int> from, mth::Point<int> to)
-{
-	SDL_SetRenderTarget(m_rend.get(), m_target_texture.data.get());
-	SDL_SetRenderDrawColor(m_rend.get(), m_target_line.color.r, m_target_line.color.g, m_target_line.color.b,
-						   m_target_line.color.a);
-
-	draw_circle(to);
-	draw_connecting_line(from, to);
-
-	SDL_SetRenderTarget(m_rend.get(), nullptr);
-}
-
-auto App::empty_texture() const -> Texture<int>
-{
-	int w, h;
-	SDL_GetWindowSize(m_win.get(), &w, &h);
-	return { .dim = { 0, 0, w, h }, .data = create_empty(m_rend.get(), w, h) };
-}
-
-void App::draw_circle(const mth::Point<int> mouse) const
-{
-	std::vector<SDL_Point> buf(m_circle_pattern.size());
-	std::transform(m_circle_pattern.begin(), m_circle_pattern.end(), buf.begin(), [&mouse](mth::Point<int> p) {
-		return SDL_Point{ p.x + mouse.x, p.y + mouse.y };
-	});
-	SDL_RenderDrawPoints(m_rend.get(), buf.data(), m_circle_pattern.size());
-}
-
-void App::draw_connecting_line(const mth::Point<int> from, const mth::Point<int> to) const
-{
-	for (int i = -m_target_line.radius, end = m_target_line.radius; i < end; ++i)
-	{
-		SDL_RenderDrawLine(m_rend.get(), from.x, from.y + i, to.x, to.y + i);
-		SDL_RenderDrawLine(m_rend.get(), from.x + i, from.y, to.x + i, to.y);
-	}
-}
-
-auto App::find_intersections(const mth::Point<float> p) const -> std::vector<size_t>
-{
-	std::vector<size_t> res;
-
-	for (size_t i = 0; i < m_canvas.textures.size(); ++i)
-		if (mth::collision(p, m_canvas.textures[i].dim))
-			res.emplace_back(i);
-
-	res.erase(
-		std::remove_if(
-			res.begin(), res.end(),
-			[this, p](const auto i) {
-				return std::none_of(
-					m_canvas.lines[i].points.begin(), m_canvas.lines[i].points.end(),
-					[this, i, p](const mth::Point<float> &l) {
-						const mth::Rect box = { l.x, l.y, m_canvas.lines[i].radius * 2, m_canvas.lines[i].radius * 2 };
-						return mth::collision(p, box);
-					});
-			}),
-		res.end());
-
-	return res;
-}
+*/
