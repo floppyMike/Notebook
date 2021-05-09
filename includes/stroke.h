@@ -8,14 +8,14 @@
 
 using namespace ctl;
 
-struct CanvasContext
+struct StrokeContext
 {
 	std::vector<mth::Point<int>> circle_pattern;
 
 	sdl::Window *  w;
 	sdl::Renderer *r;
 
-	sdl::Camera2D cam;
+	const sdl::Camera2D *cam;
 
 	std::vector<Line<float>>	lines;
 	std::vector<Texture<float>> textures;
@@ -24,49 +24,38 @@ struct CanvasContext
 	Texture<int> target_texture;
 };
 
-void erase(CanvasContext *c, size_t i)
+void erase(StrokeContext *c, size_t i)
 {
 	assert((c->textures.size() == c->lines.size()) && "Textures and lines not same size.");
 	assert(!(c->textures.empty() || c->lines.empty()) && "Textures or lines empty.");
 
 	std::swap(c->textures[i], c->textures.back());
 	std::swap(c->lines[i], c->lines.back());
-	/*
-	std::iter_swap(c->textures.begin() + i, c->textures.end() - 1);
-	std::iter_swap(c->lines.begin() + i, c->lines.end() - 1);
-	*/
 
 	c->textures.erase(c->textures.end() - 1);
 	c->lines.erase(c->lines.end() - 1);
 }
 
-auto empty_texture(const CanvasContext *c) -> Texture<int>
+auto empty_texture(const StrokeContext *c) -> Texture<int>
 {
 	int w, h;
 	SDL_GetWindowSize(c->w->get(), &w, &h);
 	return { .dim = { 0, 0, w, h }, .data = sdl::create_empty(c->r->get(), w, h) };
 }
 
-void zoom(CanvasContext *c, int factor, float scale)
-{
-	mth::Point<int> mouse_p;
-	SDL_GetMouseState(&mouse_p.x, &mouse_p.y);
-	c->cam.zoom(1.F + factor / scale, mouse_p);
-}
-
-void push_target(CanvasContext *c)
+void push_target(StrokeContext *c)
 {
 	c->textures.push_back(
-		{ .dim = c->cam.screen_world(c->target_texture.dim), .data = std::move(c->target_texture.data) });
+		{ .dim = c->cam->screen_world(c->target_texture.dim), .data = std::move(c->target_texture.data) });
 
 	std::vector<mth::Point<float>> points;
 	points.reserve(c->target_line.points.size());
-	for (auto p : c->target_line.points) points.emplace_back(c->cam.screen_world(p));
+	for (auto p : c->target_line.points) points.emplace_back(c->cam->screen_world(p));
 
 	c->lines.push_back({ c->target_line.radius, c->target_line.color, std::move(points) });
 }
 
-void draw_circle(CanvasContext *c, const mth::Point<int> mouse)
+void draw_circle(StrokeContext *c, const mth::Point<int> mouse)
 {
 	std::vector<SDL_Point> buf(c->circle_pattern.size());
 	std::transform(c->circle_pattern.begin(), c->circle_pattern.end(), buf.begin(), [&mouse](mth::Point<int> p) {
@@ -75,7 +64,7 @@ void draw_circle(CanvasContext *c, const mth::Point<int> mouse)
 	SDL_RenderDrawPoints(c->r->get(), buf.data(), c->circle_pattern.size());
 }
 
-void draw_connecting_line(CanvasContext *c, const mth::Point<int> to)
+void draw_connecting_line(StrokeContext *c, const mth::Point<int> to)
 {
 	const auto &from = c->target_line.points.back();
 
@@ -86,7 +75,7 @@ void draw_connecting_line(CanvasContext *c, const mth::Point<int> to)
 	}
 }
 
-void draw_stroke(CanvasContext *c, mth::Point<int> to)
+void draw_stroke(StrokeContext *c, mth::Point<int> to)
 {
 	SDL_SetRenderTarget(c->r->get(), c->target_texture.data.get());
 	SDL_SetRenderDrawColor(c->r->get(), c->target_line.color.r, c->target_line.color.g, c->target_line.color.b,
@@ -100,7 +89,7 @@ void draw_stroke(CanvasContext *c, mth::Point<int> to)
 	c->target_line.points.emplace_back(to);
 }
 
-void start_stroke(CanvasContext *c)
+void start_stroke(StrokeContext *c)
 {
 	c->target_texture = empty_texture(c);
 
@@ -117,7 +106,7 @@ void start_stroke(CanvasContext *c)
 	SDL_SetRenderTarget(c->r->get(), nullptr);
 }
 
-auto find_intersections(const CanvasContext *c, const mth::Point<float> p) -> std::vector<size_t>
+auto find_intersections(const StrokeContext *c, const mth::Point<float> p) -> std::vector<size_t>
 {
 	std::vector<size_t> res;
 
@@ -139,7 +128,7 @@ auto find_intersections(const CanvasContext *c, const mth::Point<float> p) -> st
 	return res;
 }
 
-auto shrink_to_fit(SDL_Renderer *r, const CanvasContext *c) -> Texture<float>
+auto shrink_to_fit(SDL_Renderer *r, const StrokeContext *c) -> Texture<float>
 {
 	SDL_FPoint min = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
 	SDL_FPoint max = { 0.F, 0.F };
@@ -168,28 +157,30 @@ auto shrink_to_fit(SDL_Renderer *r, const CanvasContext *c) -> Texture<float>
 
 auto regen_pattern(int r) noexcept { return mth::gen_circle_filled(r); }
 
-class Canvas
+class Strokes
 {
 public:
-	explicit Canvas(sdl::Window *w, sdl::Renderer *r)
+	explicit Strokes(sdl::Window *w, sdl::Renderer *r, const sdl::Camera2D *cam)
 	{
-		m_context.w = w;
-		m_context.r = r;
+		m_con.w = w;
+		m_con.r = r;
 
-		m_context.circle_pattern = regen_pattern(m_context.target_line.radius);
+		m_con.cam = cam;
+
+		m_con.circle_pattern = regen_pattern(m_con.target_line.radius);
 	}
 
 	void draw()
 	{
-		for (const auto &t : m_context.textures)
+		for (const auto &t : m_con.textures)
 		{
-			const auto world = m_context.cam.world_screen(mth::Rect{ t.dim.x, t.dim.y, t.dim.w, t.dim.h });
-			SDL_RenderCopy(m_context.r->get(), t.data.get(), nullptr, &sdl::to_rect(world));
+			const auto world = m_con.cam->world_screen(mth::Rect{ t.dim.x, t.dim.y, t.dim.w, t.dim.h });
+			SDL_RenderCopy(m_con.r->get(), t.data.get(), nullptr, &sdl::to_rect(world));
 		}
 
-		if (!m_context.target_line.points.empty())
-			SDL_RenderCopy(m_context.r->get(), m_context.target_texture.data.get(), nullptr,
-						   &sdl::to_rect(m_context.target_texture.dim));
+		if (!m_con.target_line.points.empty())
+			SDL_RenderCopy(m_con.r->get(), m_con.target_texture.data.get(), nullptr,
+						   &sdl::to_rect(m_con.target_texture.dim));
 	}
 
 	void event(const SDL_Event &e, const KeyEvent &ke)
@@ -199,7 +190,7 @@ public:
 		case SDL_MOUSEBUTTONDOWN:
 			switch (e.button.button)
 			{
-			case SDL_BUTTON_LEFT: start_stroke(&m_context); break;
+			case SDL_BUTTON_LEFT: start_stroke(&m_con); break;
 			}
 
 			break;
@@ -207,7 +198,7 @@ public:
 		case SDL_MOUSEBUTTONUP:
 			switch (e.button.button)
 			{
-			case SDL_BUTTON_LEFT: push_target(&m_context); break;
+			case SDL_BUTTON_LEFT: push_target(&m_con); break;
 			}
 
 			break;
@@ -215,50 +206,37 @@ public:
 		case SDL_MOUSEMOTION:
 			if (ke.test(KeyEventMap::MOUSE_LEFT))
 			{
-				draw_stroke(&m_context, { e.motion.x, e.motion.y });
-				trace_point(&m_context.target_line, { e.motion.x, e.motion.y });
+				draw_stroke(&m_con, { e.motion.x, e.motion.y });
+				trace_point(&m_con.target_line, { e.motion.x, e.motion.y });
 			}
 
 			else if (ke.test(KeyEventMap::MOUSE_RIGHT))
 				for (size_t i :
-					 find_intersections(&m_context, m_context.cam.screen_world(mth::Point{ e.motion.x, e.motion.y })))
-					erase(&m_context, i);
-
-			else if (ke.test(KeyEventMap::MOUSE_MIDDLE))
-				m_context.cam.translate(-e.motion.xrel, -e.motion.yrel);
+					 find_intersections(&m_con, m_con.cam->screen_world(mth::Point{ e.motion.x, e.motion.y })))
+					erase(&m_con, i);
 
 			break;
-
-		case SDL_MOUSEWHEEL: zoom(&m_context, e.wheel.y, 10.f); break;
 
 		case SDL_KEYDOWN:
 			switch (e.key.keysym.sym)
 			{
 			case SDLK_UP:
 			case SDLK_DOWN:
-				m_context.target_line.radius =
-					std::clamp(m_context.target_line.radius + (e.key.keysym.sym == SDLK_UP ? 1 : -1), 0, 10);
+				m_con.target_line.radius =
+					std::clamp(m_con.target_line.radius + (e.key.keysym.sym == SDLK_UP ? 1 : -1), 0, 10);
 
-				std::clog << "Radius: " << +m_context.target_line.radius << std::endl;
+				std::clog << "Radius: " << +m_con.target_line.radius << std::endl;
 
-				m_context.circle_pattern = regen_pattern(m_context.target_line.radius);
+				m_con.circle_pattern = regen_pattern(m_con.target_line.radius);
 
 				break;
 
-			case SDLK_r: m_context.target_line.color = sdl::RED; break;
-			case SDLK_b:
-				m_context.target_line.color = sdl::BLACK;
-				break;
-				// case SDLK_s: save("save.xml", m_lines); break;
-				// case SDLK_l:
-				//	m_lines = load("save.xml");
-				//	std::clog << "Found " << m_lines.size() << " lines.\n";
-				//	draw_lines(m_lines);
-				//	break;
+			case SDLK_r: m_con.target_line.color = sdl::RED; break;
+			case SDLK_b: m_con.target_line.color = sdl::BLACK; break;
 			}
 		}
 	}
 
 private:
-	CanvasContext m_context;
+	StrokeContext m_con;
 };

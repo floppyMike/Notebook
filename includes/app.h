@@ -5,10 +5,7 @@
 #include <CustomLibrary/Error.h>
 #include <CustomLibrary/Collider.h>
 
-#include "line.h"
-#include "texture.h"
-#include "draw.h"
-#include "save.h"
+#include "canvas.h"
 #include "event.h"
 
 using namespace ctl;
@@ -76,7 +73,6 @@ private:
 	KeyEvent m_events;
 
 	Canvas m_canvas;
-
 };
 
 /*
