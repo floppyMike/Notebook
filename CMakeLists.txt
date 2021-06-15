@@ -9,7 +9,7 @@ find_package(SDL2 REQUIRED)
 
 add_subdirectory(extern/CustomLibrary)
 
-include_directories(${SDL2_INCLUDE_DIR})
+include_directories(${SDL2_INCLUDE_DIR} extern/pugixml)
 link_libraries(${SDL2_LIBRARY} CustomLibrary)
 
 add_executable(${PROJECT_NAME} src/main.cpp)
