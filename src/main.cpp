@@ -5,9 +5,17 @@
 
 auto main() -> int
 {
-	sdl::SDL s;
-	App		 a;
-	sdl::run(&a, 61);
+	try
+	{
+		sdl::SDL s;
+		App		 a;
+		sdl::run(&a, 61);
+	}
+	catch (const std::exception &e)
+	{
+		std::cerr << e.what() << '\n';
+	}
 
 	return 0;
 }
+

@@ -7,28 +7,39 @@
 
 #include "canvas.h"
 #include "event.h"
+#include "pipe.h"
+
+#include "comp/renderer.h"
+#include "comp/window.h"
 
 using namespace ctl;
+
+struct AppContext
+{
+	Window	 win;
+	Renderer rend;
+	KeyEvent events;
+
+	Canvas canvas;
+};
 
 class App
 {
 public:
 	App()
-		: m_canvas(&m_win, &m_rend)
+		: m_win()
+		, m_rend(m_win.create_renderer())
+		, m_events()
 	{
-		m_win.reset(SDL_CreateWindow("Notetaker", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480,
-									 SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE));
-		if (!m_win)
-			throw std::runtime_error(SDL_GetError());
-
-		m_rend.reset(SDL_CreateRenderer(m_win.get(), -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE));
-		if (!m_rend)
-			throw std::runtime_error(SDL_GetError());
 	}
 
-	void pre_pass() {}
+	void pre_pass()
+	{
+	}
+
 	void event(const SDL_Event &e)
 	{
+		// Assign to map
 		switch (e.type)
 		{
 		case SDL_MOUSEBUTTONDOWN:
@@ -52,24 +63,32 @@ public:
 			break;
 		}
 
-		m_canvas.event(e, m_events);
+		// Delegate to components
+		EventPipe ep = { .e = e, .ke = m_events, .w = &m_win, .r = &m_rend };
+
+		m_canvas.event(ep);
 	}
 
-	void update() {}
+	void update()
+	{
+	}
 	void render()
 	{
-		SDL_SetRenderDrawColor(m_rend.get(), sdl::WHITE.r, sdl::WHITE.g, sdl::WHITE.b, sdl::WHITE.a);
-		SDL_RenderClear(m_rend.get());
+		m_rend.render(
+			[this]
+			{
+				m_rend.set_draw_color(0, 0, 0, 0xFF);
+				m_rend.draw_rect({ 100, 100, 100, 100 });
 
-		m_canvas.draw();
-
-		SDL_RenderPresent(m_rend.get());
+				m_canvas.draw(&m_rend);
+			});
 	}
 
 private:
-	sdl::Window	  m_win;
-	sdl::Renderer m_rend;
+	// AppContext m_con;
 
+	Window	 m_win;
+	Renderer m_rend;
 	KeyEvent m_events;
 
 	Canvas m_canvas;

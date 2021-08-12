@@ -1,16 +1,18 @@
 #pragma once
 
-#include <CustomLibrary/SDL/Camera2D.h>
+#include <CustomLibrary/SDL/All.h>
+
+#include "comp/renderer.h"
 
 #include "save.h"
 #include "stroke.h"
+#include "pipe.h"
 
 using namespace ctl;
 
 struct CanvasContext
 {
 	sdl::Camera2D cam;
-
 	Strokes strokes;
 };
 
@@ -44,26 +46,23 @@ void load(CanvasContext *c)
 class Canvas
 {
 public:
-	explicit Canvas(sdl::Window *w, sdl::Renderer *r)
-		: m_con({ .strokes = Strokes(w, r, &m_con.cam) })
-	{
-	}
+	Canvas() = default;
 
-	void draw() { m_con.strokes.draw(); }
+	void draw(Renderer *r) { m_con.strokes.draw(r); }
 
-	void event(const SDL_Event &e, const KeyEvent &ke)
+	void event(EventPipe ep)
 	{
-		switch (e.type)
+		switch (ep.e.type)
 		{
 		case SDL_MOUSEMOTION:
-			if (ke.test(KeyEventMap::MOUSE_MIDDLE))
-				m_con.cam.translate(-e.motion.xrel, -e.motion.yrel);
+			if (ep.ke.test(KeyEventMap::MOUSE_MIDDLE))
+				m_con.cam.translate(-ep.e.motion.xrel, -ep.e.motion.yrel);
 			break;
 
-		case SDL_MOUSEWHEEL: zoom(&m_con, e.wheel.y, 10.f); break;
+		case SDL_MOUSEWHEEL: zoom(&m_con, ep.e.wheel.y, 10.f); break;
 
 		case SDL_KEYDOWN:
-			switch (e.key.keysym.sym)
+			switch (ep.e.key.keysym.sym)
 			{
 			case SDLK_s: save(&m_con); break;
 			case SDLK_l: load(&m_con); break;
@@ -72,7 +71,7 @@ public:
 			break;
 		}
 
-		m_con.strokes.event(e, ke);
+		m_con.strokes.event(ep);
 	}
 
 private:
