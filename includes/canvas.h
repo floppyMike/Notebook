@@ -50,19 +50,19 @@ public:
 
 	void draw(Renderer *r) { m_con.strokes.draw(r); }
 
-	void event(EventPipe ep)
+	void event(const SDL_Event &e, const KeyEvent &ke, const Window &w, const Renderer &r)
 	{
-		switch (ep.e.type)
+		switch (e.type)
 		{
 		case SDL_MOUSEMOTION:
-			if (ep.ke.test(KeyEventMap::MOUSE_MIDDLE))
-				m_con.cam.translate(-ep.e.motion.xrel, -ep.e.motion.yrel);
+			if (ke.test(KeyEventMap::MOUSE_MIDDLE))
+				m_con.cam.translate(-e.motion.xrel, -e.motion.yrel);
 			break;
 
-		case SDL_MOUSEWHEEL: zoom(&m_con, ep.e.wheel.y, 10.f); break;
+		case SDL_MOUSEWHEEL: zoom(&m_con, e.wheel.y, 10.f); break;
 
 		case SDL_KEYDOWN:
-			switch (ep.e.key.keysym.sym)
+			switch (e.key.keysym.sym)
 			{
 			case SDLK_s: save(&m_con); break;
 			case SDLK_l: load(&m_con); break;
@@ -71,7 +71,7 @@ public:
 			break;
 		}
 
-		m_con.strokes.event(ep);
+		m_con.strokes.event(e, ke, w, r);
 	}
 
 private:

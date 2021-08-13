@@ -131,7 +131,7 @@ void push_target(const Renderer *r, const sdl::Camera2D *cam, StrokeContext *c)
 // 	c->target_line.points.emplace_back(to);
 // }
 
-void start_stroke(const Renderer *r, const Window *w, StrokeContext *c)
+void start_stroke(const Window &w, const Renderer &r, StrokeContext &c)
 {
 	// 	c->target_texture = empty_texture(c);
 	//
@@ -218,15 +218,15 @@ public:
 		// 						   &sdl::to_rect(m_con.target_texture.dim));
 	}
 
-	void event(EventPipe ep)
+	void event(const SDL_Event &e, const KeyEvent &ke, const Window &w, const Renderer &r)
 	{
-		switch (ep.e.type)
+		switch (e.type)
 		{
 		case SDL_MOUSEBUTTONDOWN:
-			switch (ep.e.button.button)
+			switch (e.button.button)
 			{
 			case SDL_BUTTON_LEFT:
-				start_stroke(ep.r, ep.w, &m_con);
+				start_stroke(w, r, m_con);
 				break;
 			}
 

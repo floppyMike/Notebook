@@ -27,9 +27,10 @@ class App
 {
 public:
 	App()
-		: m_win()
-		, m_rend(m_win.create_renderer())
-		, m_events()
+		: m_w()
+		, m_r(m_w.create_renderer())
+		, m_ek()
+		, m_canvas()
 	{
 	}
 
@@ -45,9 +46,9 @@ public:
 		case SDL_MOUSEBUTTONDOWN:
 			switch (e.button.button)
 			{
-			case SDL_BUTTON_LEFT: m_events.set(KeyEventMap::MOUSE_LEFT, true); break;
-			case SDL_BUTTON_RIGHT: m_events.set(KeyEventMap::MOUSE_RIGHT, true); break;
-			case SDL_BUTTON_MIDDLE: m_events.set(KeyEventMap::MOUSE_MIDDLE, true); break;
+			case SDL_BUTTON_LEFT: m_ek.set(KeyEventMap::MOUSE_LEFT, true); break;
+			case SDL_BUTTON_RIGHT: m_ek.set(KeyEventMap::MOUSE_RIGHT, true); break;
+			case SDL_BUTTON_MIDDLE: m_ek.set(KeyEventMap::MOUSE_MIDDLE, true); break;
 			}
 
 			break;
@@ -55,41 +56,40 @@ public:
 		case SDL_MOUSEBUTTONUP:
 			switch (e.button.button)
 			{
-			case SDL_BUTTON_LEFT: m_events.set(KeyEventMap::MOUSE_LEFT, false); break;
-			case SDL_BUTTON_RIGHT: m_events.set(KeyEventMap::MOUSE_RIGHT, false); break;
-			case SDL_BUTTON_MIDDLE: m_events.set(KeyEventMap::MOUSE_MIDDLE, false); break;
+			case SDL_BUTTON_LEFT: m_ek.set(KeyEventMap::MOUSE_LEFT, false); break;
+			case SDL_BUTTON_RIGHT: m_ek.set(KeyEventMap::MOUSE_RIGHT, false); break;
+			case SDL_BUTTON_MIDDLE: m_ek.set(KeyEventMap::MOUSE_MIDDLE, false); break;
 			}
 
 			break;
 		}
 
 		// Delegate to components
-		EventPipe ep = { .e = e, .ke = m_events, .w = &m_win, .r = &m_rend };
-
-		m_canvas.event(ep);
+		m_canvas.event(e, m_ek, m_w, m_r);
 	}
 
 	void update()
 	{
 	}
+
 	void render()
 	{
-		m_rend.render(
+		m_r.render(
 			[this]
 			{
-				m_rend.set_draw_color(0, 0, 0, 0xFF);
-				m_rend.draw_rect({ 100, 100, 100, 100 });
+				m_r.set_draw_color(sdl::BLACK);
+				m_r.draw_rect({ 100, 100, 100, 100 });
 
-				m_canvas.draw(&m_rend);
+				m_canvas.draw(&m_r);
 			});
 	}
 
 private:
 	// AppContext m_con;
 
-	Window	 m_win;
-	Renderer m_rend;
-	KeyEvent m_events;
+	Window	 m_w;
+	Renderer m_r;
+	KeyEvent m_ek;
 
 	Canvas m_canvas;
 };
