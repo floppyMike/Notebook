@@ -10,6 +10,7 @@ struct RendererContext
 {
 	sdl::Renderer				 r;
 	std::vector<mth::Point<int>> circle_pattern;
+	bool refresh = true;
 };
 
 // -----------------------------------------------------------------------------
@@ -50,6 +51,7 @@ public:
 	void draw_rect(mth::Rect<int, int> r) const
 	{
 		SDL_RenderDrawRect(m_con.r.get(), &sdl::to_rect(r));
+		SDL_RenderPresent(m_con.r.get());
 	}
 
 	// 	void draw_filled_circle(const mth::Point<int> mouse)
@@ -69,17 +71,25 @@ public:
 	// 			SDL_RenderDrawLine(c->r->get(), from.x, from.y + i, to.x, to.y + i);
 	// 			SDL_RenderDrawLine(c->r->get(), from.x + i, from.y, to.x + i, to.y);
 	// 		}
-	// 	}
+	void refresh()
+	{
+		m_con.refresh = true;
+	}
 
 	template<typename T>
 	void render(T &&draws)
 	{
+		if (!m_con.refresh)
+			return;
+
 		SDL_SetRenderDrawColor(m_con.r.get(), sdl::WHITE.r, sdl::WHITE.g, sdl::WHITE.b, sdl::WHITE.a);
 		SDL_RenderClear(m_con.r.get());
 
 		draws();
 
 		SDL_RenderPresent(m_con.r.get());
+
+		m_con.refresh = false;
 	}
 
 private:

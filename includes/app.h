@@ -77,10 +77,7 @@ public:
 		m_r.render(
 			[this]
 			{
-				m_r.set_draw_color(sdl::BLACK);
-				m_r.draw_rect({ 100, 100, 100, 100 });
-
-				m_canvas.draw(&m_r);
+				m_canvas.draw(m_r);
 			});
 	}
 

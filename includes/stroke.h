@@ -131,20 +131,22 @@ void push_target(const Renderer *r, const sdl::Camera2D *cam, StrokeContext *c)
 // 	c->target_line.points.emplace_back(to);
 // }
 
-void start_stroke(const Window &w, const Renderer &r, StrokeContext &c)
+void start_stroke(Window &w, Renderer &r, StrokeContext &c)
 {
 	// 	c->target_texture = empty_texture(c);
-	//
-	// 	int x, y;
-	// 	SDL_GetMouseState(&x, &y);
-	// 	c->target_line.points.emplace_back(x, y);
-	//
+
+	const auto mp = w.get_mousepos();
+	c.target_line.points.emplace_back(mp.x, mp.y);
+
 	// 	SDL_SetRenderTarget(c->r->get(), c->target_texture.data.get());
-	// 	SDL_SetRenderDrawColor(c->r->get(), c->target_line.color.r, c->target_line.color.g, c->target_line.color.b,
-	// 						   c->target_line.color.a);
-	//
+
+	r.set_draw_color(c.target_line.color);
+
 	// 	draw_circle(c, { x, y });
-	//
+	
+	r.draw_rect(mth::Rect{ mp.x, mp.y, 10, 10 });
+	
+	// r.refresh();
 	// 	SDL_SetRenderTarget(c->r->get(), nullptr);
 }
 
@@ -205,7 +207,7 @@ class Strokes
 public:
 	Strokes() = default;
 
-	void draw(Renderer *r)
+	void draw(const Renderer &r)
 	{
 		// 		for (const auto &t : m_con.textures)
 		// 		{
@@ -218,16 +220,14 @@ public:
 		// 						   &sdl::to_rect(m_con.target_texture.dim));
 	}
 
-	void event(const SDL_Event &e, const KeyEvent &ke, const Window &w, const Renderer &r)
+	void event(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r, const sdl::Camera2D &cam)
 	{
 		switch (e.type)
 		{
 		case SDL_MOUSEBUTTONDOWN:
 			switch (e.button.button)
 			{
-			case SDL_BUTTON_LEFT:
-				start_stroke(w, r, m_con);
-				break;
+			case SDL_BUTTON_LEFT: start_stroke(w, r, m_con); break;
 			}
 
 			break;
@@ -240,19 +240,23 @@ public:
 			//
 			// 			break;
 			//
-			// 		case SDL_MOUSEMOTION:
-			// 			if (ke.test(KeyEventMap::MOUSE_LEFT))
-			// 			{
-			// 				add_stroke(&m_con, { e.motion.x, e.motion.y });
-			// 				trace_point(&m_con.target_line, { e.motion.x, e.motion.y });
-			// 			}
-			//
+		case SDL_MOUSEMOTION:
+			if (ke.test(KeyEventMap::MOUSE_LEFT))
+			{
+				// 				add_stroke(&m_con, { e.motion.x, e.motion.y });
+				// 				trace_point(&m_con.target_line, { e.motion.x, e.motion.y });
+
+				r.set_draw_color(sdl::BLACK);
+				r.draw_rect(cam.world_screen(mth::Rect{ e.motion.x, e.motion.y, 10, 10 }));
+				// r.refresh();
+			}
+
 			// 			else if (ke.test(KeyEventMap::MOUSE_RIGHT))
 			// 				for (size_t i :
 			// 					 find_intersections(&m_con, m_con.cam->screen_world(mth::Point{ e.motion.x, e.motion.y
 			// }))) 					erase(&m_con, i);
-			//
-			// 			break;
+
+			break;
 			//
 			// 		case SDL_KEYDOWN:
 			// 			switch (e.key.keysym.sym)
@@ -323,4 +327,3 @@ public:
 private:
 	StrokeContext m_con;
 };
-

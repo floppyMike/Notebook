@@ -2,7 +2,7 @@
 
 #include <CustomLibrary/SDL/All.h>
 
-#include "comp/renderer.h"
+#include "renderer.h"
 
 using namespace ctl;
 
@@ -34,6 +34,14 @@ public:
 		SDL_GetWindowSize(m_con.win.get(), &dim.w, &dim.h);
 
 		return dim;
+	}
+
+	auto get_mousepos() const -> mth::Point<int>
+	{
+		mth::Point<int> mouse_p;
+		SDL_GetMouseState(&mouse_p.x, &mouse_p.y);
+
+		return mouse_p;
 	}
 
 private:
