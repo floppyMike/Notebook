@@ -7,10 +7,9 @@
 
 #include "canvas.h"
 #include "event.h"
-#include "pipe.h"
 
-#include "comp/renderer.h"
-#include "comp/window.h"
+#include "renderer.h"
+#include "window.h"
 
 using namespace ctl;
 
@@ -30,7 +29,7 @@ public:
 		: m_w()
 		, m_r(m_w.create_renderer())
 		, m_ek()
-		, m_canvas()
+		, m_canvas(m_r)
 	{
 	}
 

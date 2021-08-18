@@ -2,54 +2,47 @@
 
 #include <CustomLibrary/SDL/All.h>
 
-#include "comp/renderer.h"
+#include "renderer.h"
 
-#include "save.h"
-#include "stroke.h"
 #include "canvas/layout.h"
+#include "canvas/stroke.h"
+#include "canvas/save.h"
+#include "canvas/camera.h"
 
 using namespace ctl;
+
+void draw_textures(const Renderer &r, const CanvasContext &c)
+{
+	for (const auto &t : c.textures)
+	{
+		const auto world = c.cam.world_screen(mth::Rect{ t.dim.x, t.dim.y, t.dim.w, t.dim.h });
+		r.draw_texture(t.data, world);
+	}
+
+	if (!c.target_line.points.empty())
+		r.draw_texture(c.target_texture.data, c.target_texture.dim);
+}
 
 class Canvas
 {
 public:
-	Canvas() = default;
+	Canvas(Renderer &r)
+	{
+		r.set_stroke_radius(m_con.target_line.radius);
+	}
 
 	void draw(const Renderer &r)
 	{
-		m_con.strokes.draw(r);
+		draw_textures(r, m_con);
 	}
 
 	void event(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r)
 	{
-		switch (e.type)
-		{
-		case SDL_MOUSEMOTION:
-			if (ke.test(KeyEventMap::MOUSE_MIDDLE))
-			{
-				m_con.cam.translate(-e.motion.xrel, -e.motion.yrel);
-				r.refresh();
-			}
+		handle_save_event(e, ke, w, m_con);
+		handle_cam_event(e, ke, w, r, m_con);
 
-			break;
-
-		case SDL_MOUSEWHEEL:
-			zoom(w, m_con, e.wheel.y, 10.F);
-			r.refresh();
-
-			break;
-
-		case SDL_KEYDOWN:
-			switch (e.key.keysym.sym)
-			{
-			case SDLK_s: save(&m_con); break;
-			case SDLK_l: load(&m_con); break;
-			}
-
-			break;
-		}
-
-		m_con.strokes.event(e, ke, w, r, m_con.cam);
+		handle_stroke_event(e, ke, w, r, m_con);
+		// m_con.strokes.event(e, ke, w, r, m_con.cam);
 	}
 
 private:

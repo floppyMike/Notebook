@@ -16,6 +16,6 @@ struct CanvasContext
 	std::vector<Line<float>>	lines;
 	std::vector<Texture<float>> textures;
 
-	Line<float>	 target_line;
+	Line<int>	 target_line;
 	Texture<int> target_texture;
 };
