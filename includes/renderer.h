@@ -14,6 +14,17 @@ struct RendererContext
 	std::vector<mth::Point<int>> circle_pattern;
 };
 
+auto translate_circle(const RendererContext &c, mth::Point<int> m) -> std::vector<SDL_Point>
+{
+	std::vector<SDL_Point> buf(c.circle_pattern.size());
+	std::transform(c.circle_pattern.begin(), c.circle_pattern.end(), buf.begin(),
+				   [m](mth::Point<int> p) {
+					   return SDL_Point{ p.x + m.x, p.y + m.y };
+				   });
+
+	return buf;
+}
+
 class Renderer
 {
 public:
@@ -44,19 +55,20 @@ public:
 
 	void set_stroke_radius(int r)
 	{
-		m_con.circle_pattern = mth::gen_circle_filled(r);
+		m_con.circle_pattern.clear();
+
+		for (auto x = -r; x <= +r; ++x)
+			for (auto y = -r; y <= +r; ++y)
+				// if (std::abs(y) + std::abs(x) <= r - 1)
+				if (y * y + x * x < r * r)
+					m_con.circle_pattern.emplace_back(x, y);
 	}
 
 	void draw_conn_stroke(mth::Point<int> p, int r) const
 	{
 		assert(!m_con.circle_pattern.empty() && "Circle pattern not generated yet.");
 
-		std::vector<SDL_Point> buf(m_con.circle_pattern.size());
-		std::transform(m_con.circle_pattern.begin(), m_con.circle_pattern.end(), buf.begin(),
-					   [m = p](mth::Point<int> p) {
-						   return SDL_Point{ p.x + m.x, p.y + m.y };
-					   });
-
+		const auto buf = translate_circle(m_con, p);
 		SDL_RenderDrawPoints(m_con.r.get(), buf.data(), (int)m_con.circle_pattern.size());
 	}
 

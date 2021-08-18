@@ -66,26 +66,41 @@ void erase(CanvasContext &c, size_t i)
 }
 
 /**
- * @brief Create new target and draw start
+ * @brief Allocate a new target
  *
- * @param w Get the window size and relative mouse position
- * @param r Render start to texture and window
- * @param c Create target data
+ * @param w Get the window size
+ * @param r Allocate a new texture
+ * @param c Create new target
  */
-void start_stroke(const Window &w, Renderer &r, CanvasContext &c)
+void initialize_stroke(const Window &w, const Renderer &r, CanvasContext &c)
 {
 	const auto w_size = w.get_windowsize();
-	const auto mp	  = w.get_mousepos();
+	c.target_texture  = { .dim = { 0, 0, w_size.w, w_size.h }, .data = r.create_texture(w_size.w, w_size.h) };
+}
 
-	c.target_texture = { .dim = { 0, 0, w_size.w, w_size.h }, .data = r.create_texture(w_size.w, w_size.h) };
-	c.target_line.points.emplace_back(mp.x, mp.y);
-
+void render_start_stroke(const Window &w, Renderer &r, CanvasContext &c, mth::Point<int> p)
+{
 	r.set_draw_color(c.target_line.color);
 
 	r.set_target();
-	r.render_conn_stroke(mp, c.target_line.radius);
+	r.render_conn_stroke(p, c.target_line.radius);
 	r.set_target(c.target_texture.data);
-	r.render_conn_stroke(mp, c.target_line.radius);
+	r.render_conn_stroke(p, c.target_line.radius);
+}
+
+/**
+ * @brief Start drawing
+ *
+ * @param w Get relative mouse position
+ * @param r Render to texture and window
+ * @param c Fill out target data
+ */
+void start_stroke(const Window &w, Renderer &r, CanvasContext &c)
+{
+	const auto mp = w.get_mousepos();
+
+	c.target_line.points.emplace_back(mp.x, mp.y);
+	render_start_stroke(w, r, c, mp);
 }
 
 /**
@@ -103,10 +118,8 @@ void connect_stroke(const Window &w, Renderer &r, CanvasContext &c)
 
 	r.set_target();
 	r.render_inter_stroke(c.target_line.points.back(), mp, c.target_line.radius);
-	r.render_conn_stroke(mp, c.target_line.radius);
 	r.set_target(c.target_texture.data);
 	r.render_inter_stroke(c.target_line.points.back(), mp, c.target_line.radius);
-	r.render_conn_stroke(mp, c.target_line.radius);
 
 	c.target_line.points.emplace_back(mp);
 }
@@ -118,8 +131,10 @@ void connect_stroke(const Window &w, Renderer &r, CanvasContext &c)
  * @param cam Calculating world
  * @param c Storing texture and line
  */
-void finalize_stroke(const Renderer &r, CanvasContext &c)
+void finalize_stroke(const Window &w, Renderer &r, CanvasContext &c)
 {
+	render_start_stroke(w, r, c, w.get_mousepos());
+	
 	auto tex = shrink_to_fit(r, c);
 
 	c.textures.push_back({ .dim = c.cam.screen_world(tex.dim), .data = std::move(tex.data) });
@@ -166,7 +181,10 @@ void handle_stroke_event(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 	case SDL_MOUSEBUTTONDOWN:
 		switch (e.button.button)
 		{
-		case SDL_BUTTON_LEFT: start_stroke(w, r, c); break;
+		case SDL_BUTTON_LEFT:
+			initialize_stroke(w, r, c);
+			start_stroke(w, r, c);
+			break;
 		}
 
 		break;
@@ -174,7 +192,7 @@ void handle_stroke_event(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 	case SDL_MOUSEBUTTONUP:
 		switch (e.button.button)
 		{
-		case SDL_BUTTON_LEFT: finalize_stroke(r, c); break;
+		case SDL_BUTTON_LEFT: finalize_stroke(w, r, c); break;
 		}
 
 		break;
@@ -186,7 +204,8 @@ void handle_stroke_event(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 		}
 
 		// 		else if (ke.test(KeyEventMap::MOUSE_RIGHT))
-		// 			for (size_t i : find_intersections(&m_con, m_con.cam->screen_world(mth::Point{ e.motion.x, e.motion.y
+		// 			for (size_t i : find_intersections(&m_con, m_con.cam->screen_world(mth::Point{ e.motion.x,
+		// e.motion.y
 		// }))) 				erase(&m_con, i);
 
 		break;
