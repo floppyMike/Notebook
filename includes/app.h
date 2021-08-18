@@ -13,15 +13,6 @@
 
 using namespace ctl;
 
-struct AppContext
-{
-	Window	 win;
-	Renderer rend;
-	KeyEvent events;
-
-	Canvas canvas;
-};
-
 class App
 {
 public:
@@ -39,7 +30,6 @@ public:
 
 	void event(const SDL_Event &e)
 	{
-		// Assign to map
 		switch (e.type)
 		{
 		case SDL_MOUSEBUTTONDOWN:
@@ -61,6 +51,8 @@ public:
 			}
 
 			break;
+
+		case SDL_WINDOWEVENT: m_r.refresh(); break;
 		}
 
 		// Delegate to components
@@ -73,16 +65,10 @@ public:
 
 	void render()
 	{
-		m_r.render(
-			[this]
-			{
-				m_canvas.draw(m_r);
-			});
+		m_r.render([this] { m_canvas.draw(m_r); });
 	}
 
 private:
-	// AppContext m_con;
-
 	Window	 m_w;
 	Renderer m_r;
 	KeyEvent m_ek;
@@ -90,24 +76,3 @@ private:
 	Canvas m_canvas;
 };
 
-/*
-void App::draw_lines(const std::vector<Line<float>> &ls)
-{
-	SDL_SetRenderTarget(m_rend.get(), nullptr);
-
-	for (auto &l : ls)
-	{
-		SDL_SetRenderDrawColor(m_rend.get(), l.color.r, l.color.g, l.color.b, l.color.a);
-
-		draw_circle(l.points.front());
-
-		for (auto b = l.points.begin() + 1; b != l.points.end(); ++b)
-		{
-			draw_connecting_line(*(b - 1), *b);
-			draw_circle(*b);
-		}
-	}
-
-	SDL_SetRenderTarget(m_rend.get(), nullptr);
-}
-*/
