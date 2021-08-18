@@ -68,7 +68,7 @@ public:
 
 	void draw_inter_stroke(mth::Point<int> from, mth::Point<int> to, int r) const
 	{
-		for (int i = -r + (r & 1); i < r; ++i)
+		for (int i = -(r - 1); i <= r - 1; ++i)
 		{
 			SDL_RenderDrawLine(m_con.r.get(), from.x, from.y + i, to.x, to.y + i);
 			SDL_RenderDrawLine(m_con.r.get(), from.x + i, from.y, to.x + i, to.y);
