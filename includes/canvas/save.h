@@ -72,26 +72,3 @@ auto load(const char *filename) -> std::vector<Line<float>>
 
 	return lines;
 }
-
-/**
- * @brief Handle a save event
- *
- * @param e Listen for event
- * @param ke Get previous key for combination
- * @param w Get file opener
- * @param c Save the content
- */
-void handle_save_event(const SDL_Event &e, const KeyEvent &ke, const Window &w, CanvasContext &c)
-{
-	switch (e.type)
-	{
-	case SDL_KEYDOWN:
-		switch (e.key.keysym.sym)
-		{
-		case SDLK_s: save(c); break;
-		case SDLK_l: load(c); break;
-		}
-
-		break;
-	}
-}

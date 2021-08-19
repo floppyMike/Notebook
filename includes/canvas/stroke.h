@@ -174,61 +174,6 @@ auto find_intersections(const CanvasContext &c, const mth::Point<float> p) -> st
 	return res;
 }
 
-void handle_stroke_event(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r, CanvasContext &c)
-{
-	switch (e.type)
-	{
-	case SDL_MOUSEBUTTONDOWN:
-		switch (e.button.button)
-		{
-		case SDL_BUTTON_LEFT:
-			initialize_stroke(w, r, c);
-			start_stroke(w, r, c);
-			break;
-		}
-
-		break;
-
-	case SDL_MOUSEBUTTONUP:
-		switch (e.button.button)
-		{
-		case SDL_BUTTON_LEFT: finalize_stroke(w, r, c); break;
-		}
-
-		break;
-
-	case SDL_MOUSEMOTION:
-		if (ke.test(KeyEventMap::MOUSE_LEFT))
-		{
-			connect_stroke(w, r, c);
-		}
-
-		// 		else if (ke.test(KeyEventMap::MOUSE_RIGHT))
-		// 			for (size_t i : find_intersections(&m_con, m_con.cam->screen_world(mth::Point{ e.motion.x,
-		// e.motion.y
-		// }))) 				erase(&m_con, i);
-
-		break;
-
-	case SDL_KEYDOWN:
-		switch (e.key.keysym.sym)
-		{
-		case SDLK_UP:
-		case SDLK_DOWN:
-			c.target_line.radius = std::clamp(c.target_line.radius + (e.key.keysym.sym == SDLK_UP ? 1 : -1), 0, 10);
-
-			std::clog << "Radius: " << +c.target_line.radius << std::endl;
-
-			r.set_stroke_radius(c.target_line.radius);
-
-			break;
-
-		case SDLK_r: c.target_line.color = sdl::RED; break;
-		case SDLK_b: c.target_line.color = sdl::BLACK; break;
-		}
-	}
-}
-
 // void redraw(StrokeContext *c)
 // {
 // 	for (size_t i = 0; i < c->textures.size(); ++i)
@@ -251,87 +196,6 @@ void handle_stroke_event(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 // 	SDL_SetRenderTarget(c->r->get(), nullptr);
 // }
 
-// auto regen_pattern(int r) noexcept
-// {
-// 	return mth::gen_circle_filled(r);
-// }
-
-// class Strokes
-// {
-// public:
-// 	Strokes() = default;
-//
-// 	void draw(const Renderer &r)
-// 	{
-// 		// 		for (const auto &t : m_con.textures)
-// 		// 		{
-// 		// 			const auto world = m_con.cam->world_screen(mth::Rect{ t.dim.x, t.dim.y, t.dim.w, t.dim.h });
-// 		// 			SDL_RenderCopy(m_con.r->get(), t.data.get(), nullptr, &sdl::to_rect(world));
-// 		// 		}
-// 		//
-// 		// 		if (!m_con.target_line.points.empty())
-// 		// 			SDL_RenderCopy(m_con.r->get(), m_con.target_texture.data.get(), nullptr,
-// 		// 						   &sdl::to_rect(m_con.target_texture.dim));
-// 	}
-//
-// 	void event(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r, const sdl::Camera2D &cam)
-// 	{
-// 		switch (e.type)
-// 		{
-// 		case SDL_MOUSEBUTTONDOWN:
-// 			switch (e.button.button)
-// 			{
-// 			case SDL_BUTTON_LEFT: start_stroke(w, r, m_con); break;
-// 			}
-//
-// 			break;
-//
-// 			// 		case SDL_MOUSEBUTTONUP:
-// 			// 			switch (e.button.button)
-// 			// 			{
-// 			// 			case SDL_BUTTON_LEFT: push_target(&m_con); break;
-// 			// 			}
-// 			//
-// 			// 			break;
-// 			//
-// 		case SDL_MOUSEMOTION:
-// 			if (ke.test(KeyEventMap::MOUSE_LEFT))
-// 			{
-// 				// 				add_stroke(&m_con, { e.motion.x, e.motion.y });
-// 				// 				trace_point(&m_con.target_line, { e.motion.x, e.motion.y });
-//
-// 				r.set_draw_color(sdl::BLACK);
-// 				r.draw_rect(cam.world_screen(mth::Rect{ e.motion.x, e.motion.y, 10, 10 }));
-// 				// r.refresh();
-// 			}
-//
-// 			// 			else if (ke.test(KeyEventMap::MOUSE_RIGHT))
-// 			// 				for (size_t i :
-// 			// 					 find_intersections(&m_con, m_con.cam->screen_world(mth::Point{ e.motion.x, e.motion.y
-// 			// }))) 					erase(&m_con, i);
-//
-// 			break;
-// 			//
-// 			// 		case SDL_KEYDOWN:
-// 			// 			switch (e.key.keysym.sym)
-// 			// 			{
-// 			// 			case SDLK_UP:
-// 			// 			case SDLK_DOWN:
-// 			// 				m_con.target_line.radius =
-// 			// 					std::clamp(m_con.target_line.radius + (e.key.keysym.sym == SDLK_UP ? 1 : -1), 0, 10);
-// 			//
-// 			// 				std::clog << "Radius: " << +m_con.target_line.radius << std::endl;
-// 			//
-// 			// 				m_con.circle_pattern = regen_pattern(m_con.target_line.radius);
-// 			//
-// 			// 				break;
-// 			//
-// 			// 			case SDLK_r: m_con.target_line.color = sdl::RED; break;
-// 			// 			case SDLK_b: m_con.target_line.color = sdl::BLACK; break;
-// 			// 			}
-// 		}
-// 	}
-//
 // // 	void save(pugi::xml_node &node) const
 // // 	{
 // // 		for (auto [iter_l, iter_t] = std::pair(m_con.lines.begin(), m_con.textures.begin());
@@ -377,7 +241,3 @@ void handle_stroke_event(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 //
 // 		// redraw(&m_con);
 // 	// }
-//
-// private:
-// 	StrokeContext m_con;
-// };
