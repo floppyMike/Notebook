@@ -66,6 +66,7 @@
 #  License text for the above reference.)
 
 SET(SDL2_SEARCH_PATHS
+	"extern/SDL2-2.0.16"
 	~/Library/Frameworks
 	/Library/Frameworks
 	/usr/local
