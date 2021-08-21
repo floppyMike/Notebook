@@ -43,9 +43,21 @@ public:
 		SDL_SetRenderDrawColor(m_con.r.get(), col.r, col.g, col.b, col.a);
 	}
 
+	void render_target()
+	{
+		SDL_SetRenderTarget(m_con.r.get(), nullptr);
+		SDL_RenderPresent(m_con.r.get());
+	}
+
 	void set_target()
 	{
 		SDL_SetRenderTarget(m_con.r.get(), nullptr);
+	}
+
+	void render_target(const TextureData &t)
+	{
+		SDL_SetRenderTarget(m_con.r.get(), t.get());
+		SDL_RenderPresent(m_con.r.get());
 	}
 
 	void set_target(const TextureData &t)
