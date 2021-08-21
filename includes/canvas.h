@@ -39,7 +39,8 @@ public:
 			{
 			case SDLK_UP:
 			case SDLK_DOWN:
-				m_con.target_line.radius = std::clamp(m_con.target_line.radius + (e.key.keysym.sym == SDLK_UP ? 1 : -1), 0, 10);
+				m_con.target_line.radius =
+					std::clamp(m_con.target_line.radius + (e.key.keysym.sym == SDLK_UP ? 1 : -1), 0, 10);
 
 				std::clog << "Radius: " << +m_con.target_line.radius << std::endl;
 
@@ -49,8 +50,13 @@ public:
 
 			case SDLK_r: m_con.target_line.color = sdl::RED; break;
 			case SDLK_b: m_con.target_line.color = sdl::BLACK; break;
+
 			case SDLK_s: save(m_con); break;
-			case SDLK_l: load(m_con); break;
+			case SDLK_l:
+				load(m_con);
+				redraw(r, m_con);
+				r.refresh();
+				break;
 			}
 
 			break;
@@ -58,13 +64,13 @@ public:
 		case SDL_MOUSEMOTION:
 			if (ke.test(KeyEventMap::MOUSE_MIDDLE))
 			{
-				m_con.cam.translate(-e.motion.xrel, -e.motion.yrel);
+				m_con.cam.translate((float)-e.motion.xrel, (float)-e.motion.yrel);
 				r.refresh();
 			}
 
 			else if (ke.test(KeyEventMap::MOUSE_LEFT))
 			{
-				connect_stroke(w, r, m_con);
+				continue_stroke(w, r, m_con);
 			}
 
 			// 		else if (ke.test(KeyEventMap::MOUSE_RIGHT))
@@ -75,7 +81,7 @@ public:
 			break;
 
 		case SDL_MOUSEWHEEL:
-			m_con.cam.zoom(1.F + e.wheel.y / 10.F, w.get_mousepos());
+			m_con.cam.zoom(1.F + (float)e.wheel.y / 10.F, (mth::Point<float>)w.get_mousepos());
 			r.refresh();
 
 			break;
@@ -83,10 +89,7 @@ public:
 		case SDL_MOUSEBUTTONDOWN:
 			switch (e.button.button)
 			{
-			case SDL_BUTTON_LEFT:
-				initialize_stroke(w, r, m_con);
-				start_stroke(w, r, m_con);
-				break;
+			case SDL_BUTTON_LEFT: trace_stroke(w, r, m_con); break;
 			}
 
 			break;

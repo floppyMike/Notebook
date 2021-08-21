@@ -4,38 +4,39 @@
 #include "event.h"
 #include "pugixml.hpp"
 
+/**
+ * @brief Save the canvas into save.xml using XML
+ * <doc>
+ *     <ls rad= col= x= y= w= h= >
+ *         <l x= y= > ...
+ *     </ls> ...
+ * </doc>
+ *
+ * @param c Get lines info and texture dimensions
+ */
 void save(const CanvasContext &c)
 {
+	static_assert(sizeof(SDL_Color) == 4, "SDL_Color must be 4 bytes long.");
+
 	pugi::xml_document doc;
 	auto			   node = doc.append_child("doc");
 
-	// c.strokes.save(node);
-
-	doc.save_file("save.xml");
-}
-
-void load(CanvasContext &c)
-{
-	pugi::xml_document doc;
-	doc.load_file("save.xml");
-
-	auto node = doc.first_child();
-
-	// c->strokes.load(node);
-}
-
-void save(const char *filename, std::span<Line<float>> lines)
-{
-	pugi::xml_document doc;
-	auto			   node = doc.append_child("doc");
-
-	for (const auto &ls : lines)
+	for (size_t i = 0; i < c.textures.size(); ++i)
 	{
-		auto lines_node					   = node.append_child("ls");
-		lines_node.append_attribute("rad") = ls.radius;
-		lines_node.append_attribute("col") = *(uint32_t *)&ls.color;
+		const auto &texture = c.textures[i];
+		const auto &line	= c.lines[i];
 
-		for (const auto &l : ls.points)
+		auto lines_node = node.append_child("ls");
+
+		lines_node.append_attribute("rad") = line.radius;
+		lines_node.append_attribute("col") = *(uint32_t *)&line.color;
+
+		lines_node.append_attribute("x") = texture.dim.x;
+		lines_node.append_attribute("y") = texture.dim.y;
+		lines_node.append_attribute("w") = texture.dim.w;
+		lines_node.append_attribute("h") = texture.dim.h;
+
+		for (const auto &l : line.points)
 		{
 			auto line_node					= lines_node.append_child("l");
 			line_node.append_attribute("x") = l.x;
@@ -43,32 +44,37 @@ void save(const char *filename, std::span<Line<float>> lines)
 		}
 	}
 
-	doc.save_file(filename);
+	doc.save_file("save.xml");
 }
 
-auto load(const char *filename) -> std::vector<Line<float>>
+/**
+ * @brief Load save.xml into lines info and texture dimensions
+ *
+ * @param c Place to load the stored information
+ */
+void load(CanvasContext &c)
 {
+	static_assert(sizeof(SDL_Color) == 4, "SDL_Color must be 4 bytes long.");
+
 	pugi::xml_document doc;
-	doc.load_file(filename);
+	doc.load_file("save.xml");
 
 	auto node = doc.first_child();
-
-	std::vector<Line<float>> lines;
 
 	for (auto ls = node.first_child(); ls != nullptr; ls = ls.next_sibling())
 	{
 		uint8_t radius = ls.attribute("rad").as_uint();
 
-		auto	  c		= ls.attribute("col").as_uint();
-		SDL_Color color = *(SDL_Color *)&c;
+		const auto color_int = ls.attribute("col").as_uint();
+		SDL_Color  color	 = *(const SDL_Color *)&color_int;
+
+		c.textures.push_back({ .dim = { ls.attribute("x").as_float(), ls.attribute("y").as_float(),
+										ls.attribute("w").as_float(), ls.attribute("h").as_float() } });
 
 		std::vector<mth::Point<float>> ps;
-
 		for (auto l = ls.first_child(); l != nullptr; l = l.next_sibling())
 			ps.emplace_back(l.attribute("x").as_float(), l.attribute("y").as_float());
 
-		lines.push_back({ radius, color, std::move(ps) });
+		c.lines.push_back({ radius, color, std::move(ps) });
 	}
-
-	return lines;
 }
