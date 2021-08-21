@@ -3,7 +3,7 @@
 
 #include "app.h"
 
-auto main() -> int
+auto main(int argc, char **argv) -> int
 {
 	try
 	{
