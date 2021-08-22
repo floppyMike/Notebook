@@ -15,7 +15,7 @@ class Canvas
 public:
 	Canvas(Renderer &r)
 	{
-		r.set_stroke_radius(m_con.target_line.radius);
+		r.set_stroke_radius(m_con.target_line_info.radius);
 	}
 
 	void draw(const Renderer &r)
@@ -26,7 +26,7 @@ public:
 			r.draw_texture(t.data, world);
 		}
 
-		if (!m_con.target_line.points.empty())
+		if (m_con.target_texture.data)
 			r.draw_texture(m_con.target_texture.data, m_con.target_texture.dim);
 	}
 
@@ -39,20 +39,21 @@ public:
 			{
 			case SDLK_UP:
 			case SDLK_DOWN:
-				m_con.target_line.radius =
-					std::clamp(m_con.target_line.radius + (e.key.keysym.sym == SDLK_UP ? 1 : -1), 0, 10);
+				m_con.target_line_info.radius =
+					std::clamp(m_con.target_line_info.radius + (e.key.keysym.sym == SDLK_UP ? 1 : -1), 0, 10);
 
-				std::clog << "Radius: " << +m_con.target_line.radius << std::endl;
+				std::clog << "Radius: " << +m_con.target_line_info.radius << std::endl;
 
-				r.set_stroke_radius(m_con.target_line.radius);
+				r.set_stroke_radius(m_con.target_line_info.radius);
 
 				break;
 
-			case SDLK_r: m_con.target_line.color = sdl::RED; break;
-			case SDLK_b: m_con.target_line.color = sdl::BLACK; break;
+			case SDLK_r: m_con.target_line_info.color = sdl::RED; break;
+			case SDLK_b: m_con.target_line_info.color = sdl::BLACK; break;
 
 			case SDLK_s: save(m_con); break;
 			case SDLK_l:
+				clear(m_con);
 				load(m_con);
 				redraw(r, m_con);
 				r.refresh();

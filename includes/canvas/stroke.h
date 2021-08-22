@@ -5,8 +5,6 @@
 #include <CustomLibrary/Collider.h>
 
 #include "window.h"
-#include "line.h"
-#include "texture.h"
 #include "event.h"
 #include "layout.h"
 
@@ -20,7 +18,7 @@ using namespace ctl;
  *
  * @return Shrunk texture
  */
-auto shrink_to_fit(const Renderer &r, const CanvasContext &c) -> Texture<int>
+auto shrink_to_fit(const Renderer &r, const CanvasContext &c) -> ScreenTexture
 {
 	SDL_Point min = { std::numeric_limits<int>::max(), std::numeric_limits<int>::max() };
 	SDL_Point max = { 0, 0 };
@@ -33,10 +31,10 @@ auto shrink_to_fit(const Renderer &r, const CanvasContext &c) -> Texture<int>
 		max.y = std::max(max.y, p.y);
 	}
 
-	min.x -= c.target_line.radius;
-	min.y -= c.target_line.radius;
-	max.x += c.target_line.radius;
-	max.y += c.target_line.radius;
+	min.x -= c.target_line_info.radius;
+	min.y -= c.target_line_info.radius;
+	max.x += c.target_line_info.radius;
+	max.y += c.target_line_info.radius;
 
 	const auto w = max.x - min.x;
 	const auto h = max.y - min.y;
@@ -74,11 +72,11 @@ void erase(CanvasContext &c, size_t i)
  */
 void render_start_stroke(Renderer &r, CanvasContext &c, mth::Point<int> p)
 {
-	r.set_draw_color(c.target_line.color);
+	r.set_draw_color(c.target_line_info.color);
 
-	r.draw_conn_stroke(p, c.target_line.radius);
+	r.draw_conn_stroke(p, c.target_line_info.radius);
 	r.render_target();
-	r.draw_conn_stroke(p, c.target_line.radius);
+	r.draw_conn_stroke(p, c.target_line_info.radius);
 	r.render_target(c.target_texture.data);
 }
 
@@ -91,10 +89,10 @@ void render_start_stroke(Renderer &r, CanvasContext &c, mth::Point<int> p)
  */
 void trace_stroke(const Window &w, Renderer &r, CanvasContext &c)
 {
-	const auto mp = w.get_mousepos();
+	const auto mp	  = w.get_mousepos();
 	const auto w_size = w.get_windowsize();
 
-	c.target_texture  = { .dim = { 0, 0, w_size.w, w_size.h }, .data = r.create_texture(w_size.w, w_size.h) };
+	c.target_texture = { .dim = { 0, 0, w_size.w, w_size.h }, .data = r.create_texture(w_size.w, w_size.h) };
 	c.target_line.points.emplace_back(mp.x, mp.y);
 
 	render_start_stroke(r, c, mp);
@@ -111,11 +109,11 @@ void continue_stroke(const Window &w, Renderer &r, CanvasContext &c)
 {
 	const auto mp = w.get_mousepos();
 
-	r.set_draw_color(c.target_line.color);
+	r.set_draw_color(c.target_line_info.color);
 
-	r.draw_inter_stroke(c.target_line.points.back(), mp, c.target_line.radius);
+	r.draw_inter_stroke(c.target_line.points.back(), mp, c.target_line_info.radius);
 	r.render_target();
-	r.draw_inter_stroke(c.target_line.points.back(), mp, c.target_line.radius);
+	r.draw_inter_stroke(c.target_line.points.back(), mp, c.target_line_info.radius);
 	r.render_target(c.target_texture.data);
 
 	c.target_line.points.emplace_back(mp);
@@ -140,36 +138,37 @@ void finalize_stroke(const Window &w, Renderer &r, CanvasContext &c)
 	points.reserve(c.target_line.points.size());
 	for (auto p : c.target_line.points) points.emplace_back(c.cam.screen_world(p));
 
-	c.lines.push_back({ c.target_line.radius, c.target_line.color, std::move(points) });
+	c.lines.push_back({ std::move(points) });
+	c.lines_info.push_back({ c.target_line_info.radius, c.cam.scale(), c.target_line_info.color });
 
 	c.target_line.points.clear();
 	c.target_texture.data.reset();
 }
 
-auto find_intersections(const CanvasContext &c, const mth::Point<float> p) -> std::vector<size_t>
-{
-	std::vector<size_t> res;
-
-	for (int i = c.textures.size() - 1; i >= 0; --i)
-		if (mth::collision(p, c.textures[i].dim))
-			res.emplace_back(i);
-
-	res.erase(
-		std::remove_if(res.begin(), res.end(),
-					   [&c, p](const auto i)
-					   {
-						   return std::none_of(
-							   c.lines[i].points.begin(), c.lines[i].points.end(),
-							   [&c, i, p](const mth::Point<float> &l)
-							   {
-								   const mth::Rect box = { l.x, l.y, c.lines[i].radius * 2, c.lines[i].radius * 2 };
-								   return mth::collision(p, box);
-							   });
-					   }),
-		res.end());
-
-	return res;
-}
+// auto find_intersections(const CanvasContext &c, const mth::Point<float> p) -> std::vector<size_t>
+// {
+// 	std::vector<size_t> res;
+//
+// 	for (int i = c.textures.size() - 1; i >= 0; --i)
+// 		if (mth::collision(p, c.textures[i].dim))
+// 			res.emplace_back(i);
+//
+// 	res.erase(
+// 		std::remove_if(res.begin(), res.end(),
+// 					   [&c, p](const auto i)
+// 					   {
+// 						   return std::none_of(
+// 							   c.lines[i].points.begin(), c.lines[i].points.end(),
+// 							   [&c, i, p](const mth::Point<float> &l)
+// 							   {
+// 								   const mth::Rect box = { l.x, l.y, c.lines[i].radius * 2, c.lines[i].radius * 2 };
+// 								   return mth::collision(p, box);
+// 							   });
+// 					   }),
+// 		res.end());
+//
+// 	return res;
+// }
 
 /**
  * @brief Generate textures using the stored list of lines
@@ -181,25 +180,28 @@ void redraw(Renderer &r, CanvasContext &c)
 {
 	for (size_t i = 0; i < c.textures.size(); ++i)
 	{
-		auto &		texture = c.textures[i];
-		const auto &line	= c.lines[i];
+		auto &		texture	  = c.textures[i];
+		const auto &line	  = c.lines[i];
+		const auto &line_info = c.lines_info[i];
 
-		auto t = r.create_texture(texture.dim.w, texture.dim.h);
+		sdl::Camera2D cam(texture.dim.pos(), line_info.scale);
 
-		r.set_target(t);
-		r.set_draw_color(line.color);
+		const auto screen_size = cam.world_screen(mth::Dim{ texture.dim.w, texture.dim.h });
+		auto	   t		   = r.create_texture((int)std::lrint(screen_size.w), (int)std::lrint(screen_size.h));
 
-		const auto offset = texture.dim.pos();
-		auto prev_pos = line.points.front() - offset;
+		r.set_draw_color(line_info.color);
+		r.set_stroke_radius(line_info.radius);
 
-		r.draw_conn_stroke(prev_pos, line.radius);
+		auto prev_pos = cam.world_screen(line.points.front());
+
+		r.draw_conn_stroke(prev_pos, line_info.radius);
 
 		for (auto p = line.points.begin() + 1; p != line.points.end(); ++p)
 		{
-			const auto next_pos = *p - offset;
+			const auto next_pos = cam.world_screen(*p);
 
-			r.draw_inter_stroke(prev_pos, next_pos, line.radius);
-			r.draw_conn_stroke(next_pos, line.radius);
+			r.draw_inter_stroke(prev_pos, next_pos, line_info.radius);
+			r.draw_conn_stroke(next_pos, line_info.radius);
 
 			prev_pos = next_pos;
 		}
@@ -207,4 +209,16 @@ void redraw(Renderer &r, CanvasContext &c)
 		r.render_target(t);
 		texture.data = std::move(t);
 	}
+}
+
+/**
+ * @brief Clear all data from canvas
+ *
+ * @param c Access the data to be cleared
+ */
+void clear(CanvasContext &c)
+{
+	c.textures.clear();
+	c.lines.clear();
+	c.lines_info.clear();
 }

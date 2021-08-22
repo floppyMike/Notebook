@@ -4,18 +4,66 @@
 
 #include <CustomLibrary/SDL/All.h>
 
-#include "line.h"
-#include "texture.h"
+#include "renderer.h"
 
 using namespace ctl;
+
+// -----------------------------------------------------------------------------
+// Lines
+// -----------------------------------------------------------------------------
+
+struct WorldLine
+{
+	std::vector<mth::Point<float>> points;
+};
+
+struct WorldLineInfo
+{
+	uint8_t	  radius = 1;
+	float	  scale;
+	SDL_Color color = sdl::BLACK;
+};
+
+struct ScreenLine
+{
+	std::vector<mth::Point<int>> points;
+};
+
+struct ScreenLineInfo
+{
+	uint8_t	  radius = 1;
+	SDL_Color color	 = sdl::BLACK;
+};
+
+// -----------------------------------------------------------------------------
+// Textures
+// -----------------------------------------------------------------------------
+
+struct WorldTexture
+{
+	mth::Rect<float, float> dim;
+	TextureData				data;
+};
+
+struct ScreenTexture
+{
+	mth::Rect<int, int> dim;
+	TextureData			data;
+};
+
+// -----------------------------------------------------------------------------
+// Context
+// -----------------------------------------------------------------------------
 
 struct CanvasContext
 {
 	sdl::Camera2D cam;
 
-	std::vector<Line<float>>	lines;
-	std::vector<Texture<float>> textures;
+	std::vector<WorldLine>	   lines;
+	std::vector<WorldLineInfo> lines_info;
+	std::vector<WorldTexture>  textures;
 
-	Line<int>	 target_line;
-	Texture<int> target_texture;
+	ScreenLine	   target_line;
+	ScreenLineInfo target_line_info;
+	ScreenTexture  target_texture;
 };

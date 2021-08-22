@@ -7,7 +7,7 @@
 /**
  * @brief Save the canvas into save.xml using XML
  * <doc>
- *     <ls rad= col= x= y= w= h= >
+ *     <ls rad= col= s= x= y= w= h= >
  *         <l x= y= > ...
  *     </ls> ...
  * </doc>
@@ -23,13 +23,15 @@ void save(const CanvasContext &c)
 
 	for (size_t i = 0; i < c.textures.size(); ++i)
 	{
-		const auto &texture = c.textures[i];
-		const auto &line	= c.lines[i];
+		const auto &texture	  = c.textures[i];
+		const auto &line	  = c.lines[i];
+		const auto &line_info = c.lines_info[i];
 
 		auto lines_node = node.append_child("ls");
 
-		lines_node.append_attribute("rad") = line.radius;
-		lines_node.append_attribute("col") = *(uint32_t *)&line.color;
+		lines_node.append_attribute("r") = line_info.radius;
+		lines_node.append_attribute("c") = *(uint32_t *)&line_info.color;
+		lines_node.append_attribute("s")   = line_info.scale;
 
 		lines_node.append_attribute("x") = texture.dim.x;
 		lines_node.append_attribute("y") = texture.dim.y;
@@ -63,10 +65,10 @@ void load(CanvasContext &c)
 
 	for (auto ls = node.first_child(); ls != nullptr; ls = ls.next_sibling())
 	{
-		uint8_t radius = ls.attribute("rad").as_uint();
-
-		const auto color_int = ls.attribute("col").as_uint();
-		SDL_Color  color	 = *(const SDL_Color *)&color_int;
+		const uint8_t	radius	  = ls.attribute("r").as_uint();
+		const auto		color_int = ls.attribute("c").as_uint();
+		const SDL_Color color	  = *(const SDL_Color *)&color_int;
+		const float		scale	  = ls.attribute("s").as_float();
 
 		c.textures.push_back({ .dim = { ls.attribute("x").as_float(), ls.attribute("y").as_float(),
 										ls.attribute("w").as_float(), ls.attribute("h").as_float() } });
@@ -75,6 +77,7 @@ void load(CanvasContext &c)
 		for (auto l = ls.first_child(); l != nullptr; l = l.next_sibling())
 			ps.emplace_back(l.attribute("x").as_float(), l.attribute("y").as_float());
 
-		c.lines.push_back({ radius, color, std::move(ps) });
+		c.lines.push_back({ std::move(ps) });
+		c.lines_info.push_back({ radius, scale, color });
 	}
 }
