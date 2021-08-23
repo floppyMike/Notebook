@@ -40,7 +40,7 @@ public:
 			case SDLK_UP:
 			case SDLK_DOWN:
 				m_con.target_line_info.radius =
-					std::clamp(m_con.target_line_info.radius + (e.key.keysym.sym == SDLK_UP ? 1 : -1), 0, 10);
+					std::clamp(m_con.target_line_info.radius + (e.key.keysym.sym == SDLK_UP ? 1 : -1), 1, 10);
 
 				std::clog << "Radius: " << +m_con.target_line_info.radius << std::endl;
 
@@ -52,6 +52,7 @@ public:
 			case SDLK_b: m_con.target_line_info.color = sdl::BLACK; break;
 
 			case SDLK_s: save(m_con); break;
+
 			case SDLK_l:
 				clear(m_con);
 				load(m_con);
@@ -74,10 +75,12 @@ public:
 				continue_stroke(w, r, m_con);
 			}
 
-			// 		else if (ke.test(KeyEventMap::MOUSE_RIGHT))
-			// 			for (size_t i : find_intersections(&m_con, m_con.cam->screen_world(mth::Point{ e.motion.x,
-			// e.motion.y
-			// }))) 				erase(&m_con, i);
+			else if (ke.test(KeyEventMap::MOUSE_RIGHT))
+				for (size_t i : find_intersections(m_con, m_con.cam.screen_world(mth::Point{ e.motion.x, e.motion.y })))
+				{
+					erase(m_con, i);
+					r.refresh();
+				}
 
 			break;
 

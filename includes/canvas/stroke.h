@@ -145,30 +145,38 @@ void finalize_stroke(const Window &w, Renderer &r, CanvasContext &c)
 	c.target_texture.data.reset();
 }
 
-// auto find_intersections(const CanvasContext &c, const mth::Point<float> p) -> std::vector<size_t>
-// {
-// 	std::vector<size_t> res;
-//
-// 	for (int i = c.textures.size() - 1; i >= 0; --i)
-// 		if (mth::collision(p, c.textures[i].dim))
-// 			res.emplace_back(i);
-//
-// 	res.erase(
-// 		std::remove_if(res.begin(), res.end(),
-// 					   [&c, p](const auto i)
-// 					   {
-// 						   return std::none_of(
-// 							   c.lines[i].points.begin(), c.lines[i].points.end(),
-// 							   [&c, i, p](const mth::Point<float> &l)
-// 							   {
-// 								   const mth::Rect box = { l.x, l.y, c.lines[i].radius * 2, c.lines[i].radius * 2 };
-// 								   return mth::collision(p, box);
-// 							   });
-// 					   }),
-// 		res.end());
-//
-// 	return res;
-// }
+/**
+ * @brief Find all points intersecting with given point
+ *
+ * @param c Get all lines
+ * @param p Point to compare to
+ *
+ * @return Collection of indexes for collisions
+ */
+auto find_intersections(const CanvasContext &c, const mth::Point<float> p) -> std::vector<size_t>
+{
+	std::vector<size_t> res;
+
+	for (int i = c.textures.size() - 1; i >= 0; --i)
+		if (mth::collision(p, c.textures[i].dim))
+			res.emplace_back(i);
+
+	res.erase(
+		std::remove_if(res.begin(), res.end(),
+					   [&c, p](const auto i)
+					   {
+						   return std::none_of(
+							   c.lines[i].points.begin(), c.lines[i].points.end(),
+							   [&c, i, p](const mth::Point<float> &l)
+							   {
+								   const mth::Rect box = { l.x, l.y, c.lines_info[i].radius * 2 + 1, c.lines_info[i].radius * 2 + 1 };
+								   return mth::collision(p, box);
+							   });
+					   }),
+		res.end());
+
+	return res;
+}
 
 /**
  * @brief Generate textures using the stored list of lines
