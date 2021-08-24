@@ -6,11 +6,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
 find_package(SDL2 REQUIRED)
+find_package(SDL2_ttf REQUIRED)
 
 add_subdirectory(extern/CustomLibrary)
 
-include_directories(${SDL2_INCLUDE_DIR} extern/pugixml)
-link_libraries(${SDL2_LIBRARY} CustomLibrary)
+include_directories(${SDL2_INCLUDE_DIR} ${SDL2_TTF_INCLUDE_DIRS} extern/pugixml)
+link_libraries(${SDL2_LIBRARY} ${SDL2_TTF_LIBRARIES} CustomLibrary)
 
 add_executable(${PROJECT_NAME} src/main.cpp)
 target_include_directories(${PROJECT_NAME} PRIVATE includes)
