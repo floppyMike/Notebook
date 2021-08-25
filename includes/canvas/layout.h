@@ -52,6 +52,21 @@ struct ScreenTexture
 };
 
 // -----------------------------------------------------------------------------
+// Text
+// -----------------------------------------------------------------------------
+
+struct TextInfo
+{
+	std::string str;
+	float scale;
+};
+
+struct TextFont
+{
+	FontData data;
+};
+
+// -----------------------------------------------------------------------------
 // Context
 // -----------------------------------------------------------------------------
 
@@ -66,4 +81,9 @@ struct CanvasContext
 	ScreenLine	   target_line;
 	ScreenLineInfo target_line_info;
 	ScreenTexture  target_texture;
+
+	TextFont font;
+
+	std::vector<WorldTexture> texts;
+	std::vector<TextInfo>	  text_strs;
 };
