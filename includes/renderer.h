@@ -1,10 +1,14 @@
 #pragma once
 
+#include <SDL.h>
+#include <SDL_ttf.h>
+
 #include <CustomLibrary/SDL/All.h>
 
 using namespace ctl;
 
 using TextureData = sdl::Texture;
+using FontData = sdl::Font;
 
 struct RendererContext
 {
@@ -49,20 +53,10 @@ public:
 		SDL_RenderPresent(m_con.r.get());
 	}
 
-	void set_target()
-	{
-		SDL_SetRenderTarget(m_con.r.get(), nullptr);
-	}
-
 	void render_target(const TextureData &t)
 	{
 		SDL_SetRenderTarget(m_con.r.get(), t.get());
 		SDL_RenderPresent(m_con.r.get());
-	}
-
-	void set_target(const TextureData &t)
-	{
-		SDL_SetRenderTarget(m_con.r.get(), t.get());
 	}
 
 	void set_stroke_radius(int r)
@@ -84,12 +78,6 @@ public:
 		SDL_RenderDrawPoints(m_con.r.get(), buf.data(), (int)m_con.circle_pattern.size());
 	}
 
-	void render_conn_stroke(mth::Point<int> p, int r) const
-	{
-		draw_conn_stroke(p, r);
-		SDL_RenderPresent(m_con.r.get());
-	}
-
 	void draw_inter_stroke(mth::Point<int> from, mth::Point<int> to, int r) const
 	{
 		for (int i = -(r - 1); i <= r - 1; ++i)
@@ -97,12 +85,6 @@ public:
 			SDL_RenderDrawLine(m_con.r.get(), from.x, from.y + i, to.x, to.y + i);
 			SDL_RenderDrawLine(m_con.r.get(), from.x + i, from.y, to.x + i, to.y);
 		}
-	}
-
-	void render_inter_stroke(mth::Point<int> from, mth::Point<int> to, int r) const
-	{
-		draw_inter_stroke(from, to, r);
-		SDL_RenderPresent(m_con.r.get());
 	}
 
 	auto create_texture(int w, int h) const
@@ -123,12 +105,6 @@ public:
 	void draw_rect(mth::Rect<int, int> r) const
 	{
 		SDL_RenderDrawRect(m_con.r.get(), &sdl::to_rect(r));
-	}
-
-	void render_rect(mth::Rect<int, int> r) const
-	{
-		draw_rect(r);
-		SDL_RenderPresent(m_con.r.get());
 	}
 
 	void refresh()
