@@ -38,12 +38,15 @@ public:
 			switch (e.key.keysym.sym)
 			{
 			case SDLK_UP:
-			case SDLK_DOWN:
-				m_con.target_line_info.radius =
-					std::clamp(m_con.target_line_info.radius + (e.key.keysym.sym == SDLK_UP ? 1 : -1), 1, 10);
-
+				m_con.target_line_info.radius = std::min(m_con.target_line_info.radius + 1, 9);
 				std::clog << "Radius: " << +m_con.target_line_info.radius << std::endl;
+				r.set_stroke_radius(m_con.target_line_info.radius);
 
+				break;
+
+			case SDLK_DOWN:
+				m_con.target_line_info.radius = std::max(m_con.target_line_info.radius - 1, 1);
+				std::clog << "Radius: " << +m_con.target_line_info.radius << std::endl;
 				r.set_stroke_radius(m_con.target_line_info.radius);
 
 				break;
@@ -71,9 +74,7 @@ public:
 			}
 
 			else if (ke.test(KeyEventMap::MOUSE_LEFT))
-			{
 				continue_stroke(w, r, m_con);
-			}
 
 			else if (ke.test(KeyEventMap::MOUSE_RIGHT))
 				for (size_t i : find_intersections(m_con, m_con.cam.screen_world(mth::Point{ e.motion.x, e.motion.y })))
