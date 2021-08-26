@@ -217,6 +217,8 @@ void redraw(Renderer &r, CanvasContext &c)
 		r.render_target(t);
 		tex.data = std::move(t);
 	}
+
+	r.set_stroke_radius(c.target_line_info.radius);
 }
 
 /**
