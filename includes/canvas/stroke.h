@@ -161,19 +161,19 @@ auto find_intersections(const CanvasContext &c, const mth::Point<float> p) -> st
 		if (mth::collision(p, c.textures[i].dim))
 			res.emplace_back(i);
 
-	res.erase(
-		std::remove_if(res.begin(), res.end(),
-					   [&c, p](const auto i)
-					   {
-						   return std::none_of(
-							   c.lines[i].points.begin(), c.lines[i].points.end(),
-							   [&c, i, p](const mth::Point<float> &l)
-							   {
-								   const mth::Rect box = { l.x, l.y, c.lines_info[i].radius * 2 + 1, c.lines_info[i].radius * 2 + 1 };
-								   return mth::collision(p, box);
-							   });
-					   }),
-		res.end());
+	res.erase(std::remove_if(res.begin(), res.end(),
+							 [&c, p](const auto i)
+							 {
+								 return std::none_of(c.lines[i].points.begin(), c.lines[i].points.end(),
+													 [&c, i, p](const mth::Point<float> &l)
+													 {
+														 const mth::Rect box = { l.x, l.y,
+																				 c.lines_info[i].radius * 2 + 1,
+																				 c.lines_info[i].radius * 2 + 1 };
+														 return mth::collision(p, box);
+													 });
+							 }),
+			  res.end());
 
 	return res;
 }
@@ -188,34 +188,34 @@ void redraw(Renderer &r, CanvasContext &c)
 {
 	for (size_t i = 0; i < c.textures.size(); ++i)
 	{
-		auto &		texture	  = c.textures[i];
-		const auto &line	  = c.lines[i];
-		const auto &line_info = c.lines_info[i];
+		auto &		tex = c.textures[i];
+		const auto &l	= c.lines[i];
+		const auto &lf	= c.lines_info[i];
 
-		sdl::Camera2D cam(texture.dim.pos(), line_info.scale);
+		sdl::Camera2D cam(tex.dim.pos(), lf.scale);
 
-		const auto screen_size = cam.world_screen(mth::Dim{ texture.dim.w, texture.dim.h });
-		auto	   t		   = r.create_texture((int)std::lrint(screen_size.w), (int)std::lrint(screen_size.h));
+		const auto t_size = cam.world_screen(mth::Dim{ tex.dim.w, tex.dim.h });
+		auto	   t	  = r.create_texture(t_size.w, t_size.h);
 
-		r.set_draw_color(line_info.color);
-		r.set_stroke_radius(line_info.radius);
+		r.set_draw_color(lf.color);
+		r.set_stroke_radius(lf.radius);
 
-		auto prev_pos = cam.world_screen(line.points.front());
+		auto prev_pos = cam.world_screen(l.points.front());
 
-		r.draw_conn_stroke(prev_pos, line_info.radius);
+		r.draw_conn_stroke(prev_pos, lf.radius);
 
-		for (auto p = line.points.begin() + 1; p != line.points.end(); ++p)
+		for (auto p = l.points.begin() + 1; p != l.points.end(); ++p)
 		{
 			const auto next_pos = cam.world_screen(*p);
-
-			r.draw_inter_stroke(prev_pos, next_pos, line_info.radius);
-			r.draw_conn_stroke(next_pos, line_info.radius);
-
+			r.draw_inter_stroke(prev_pos, next_pos, lf.radius);
 			prev_pos = next_pos;
 		}
 
+		if (l.points.size() > 1)
+			r.draw_conn_stroke(prev_pos, lf.radius);
+
 		r.render_target(t);
-		texture.data = std::move(t);
+		tex.data = std::move(t);
 	}
 }
 
