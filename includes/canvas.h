@@ -59,6 +59,11 @@ public:
 				redraw(r, m_con);
 				r.refresh();
 				break;
+
+			case SDLK_n:
+				for (const auto &i : m_con.lines_info) std::clog << i.scale << '\n';
+				std::cout << std::endl;
+				break;
 			}
 
 			break;

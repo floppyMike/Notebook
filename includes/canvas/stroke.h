@@ -58,9 +58,11 @@ void erase(CanvasContext &c, size_t i)
 
 	std::swap(c.textures[i], c.textures.back());
 	std::swap(c.lines[i], c.lines.back());
+	std::swap(c.lines_info[i], c.lines_info.back());
 
 	c.textures.erase(c.textures.end() - 1);
 	c.lines.erase(c.lines.end() - 1);
+	c.lines_info.erase(c.lines_info.end() - 1);
 }
 
 /**
