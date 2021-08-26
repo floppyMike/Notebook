@@ -42,12 +42,15 @@ void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r
 			redraw(r, c);
 			r.refresh();
 			break;
+
+		case SDLK_y: c.status = TYPING; break;
+
+		case SDLK_n:
+			for (const auto &i : c.lines_info) std::clog << i.scale << '\n';
+			std::cout << std::endl;
+			break;
 		}
 
-		break;
-
-	case SDLK_y:
-		c.status = TYPING;
 		break;
 
 	case SDL_MOUSEMOTION:

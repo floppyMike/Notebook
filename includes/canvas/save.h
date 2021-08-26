@@ -31,18 +31,25 @@ void save(const CanvasContext &c)
 
 		lines_node.append_attribute("r") = line_info.radius;
 		lines_node.append_attribute("c") = *(uint32_t *)&line_info.color;
-		lines_node.append_attribute("s")   = line_info.scale;
+		lines_node.append_attribute("s") = line_info.scale;
 
 		lines_node.append_attribute("x") = texture.dim.x;
 		lines_node.append_attribute("y") = texture.dim.y;
 		lines_node.append_attribute("w") = texture.dim.w;
 		lines_node.append_attribute("h") = texture.dim.h;
 
+		// 		std::clog << line_info.radius << '\t' << *(uint32_t *)&line_info.color << '\t' << line_info.scale <<
+		// '\t'
+		// 				  << texture.dim.x << '\t' << texture.dim.y << '\t' << texture.dim.w << '\t' << texture.dim.h <<
+		// "\n\n";
+
 		for (const auto &l : line.points)
 		{
 			auto line_node					= lines_node.append_child("l");
 			line_node.append_attribute("x") = l.x;
 			line_node.append_attribute("y") = l.y;
+
+			// std::cout << l.x << '\t' << l.y << '\n';
 		}
 	}
 
@@ -73,9 +80,16 @@ void load(CanvasContext &c)
 		c.textures.push_back({ .dim = { ls.attribute("x").as_float(), ls.attribute("y").as_float(),
 										ls.attribute("w").as_float(), ls.attribute("h").as_float() } });
 
+		// 		std::clog << radius << '\t' << color_int << '\t' << scale << '\t'
+		// 				  << c.textures.back().dim.x << '\t' << c.textures.back().dim.y << '\t' << c.textures.back().dim.w <<
+		// '\t' << c.textures.back().dim.h << "\n\n";
+
 		std::vector<mth::Point<float>> ps;
 		for (auto l = ls.first_child(); l != nullptr; l = l.next_sibling())
+		{
 			ps.emplace_back(l.attribute("x").as_float(), l.attribute("y").as_float());
+			// std::cout << ps.back().x << '\t' << ps.back().y << '\n';
+		}
 
 		c.lines.push_back({ std::move(ps) });
 		c.lines_info.push_back({ radius, scale, color });
