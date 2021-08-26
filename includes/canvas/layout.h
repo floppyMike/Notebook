@@ -5,6 +5,7 @@
 #include <CustomLibrary/SDL/All.h>
 
 #include "renderer.h"
+#include "status.h"
 
 using namespace ctl;
 
@@ -72,6 +73,8 @@ struct TextFont
 
 struct CanvasContext
 {
+	Status status = PAINTING;
+
 	sdl::Camera2D cam;
 
 	std::vector<WorldLine>	   lines;
