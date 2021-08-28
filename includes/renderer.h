@@ -92,12 +92,31 @@ public:
 		return sdl::create_empty(m_con.r.get(), w, h);
 	}
 
+	auto create_font(const char *path, int size)
+	{
+		return sdl::load_font(path, size);
+	}
+
+	auto create_text(const FontData &f, const char *text) const
+	{
+		auto *s = TTF_RenderText_Blended_Wrapped(f.get(), text, sdl::BLACK, 200);
+		
+		if (s == nullptr)
+			throw std::runtime_error(TTF_GetError());
+
+		auto t = TextureData(SDL_CreateTextureFromSurface(m_con.r.get(), s));
+
+		SDL_FreeSurface(s);
+
+		return t;
+	}
+
 	auto crop_texture(const TextureData &t, const mth::Rect<int, int> &r) const
 	{
 		return sdl::crop(m_con.r.get(), t, r);
 	}
 
-	auto draw_texture(const TextureData &t, const mth::Rect<int, int> &r) const
+	void draw_texture(const TextureData &t, const mth::Rect<int, int> &r) const
 	{
 		SDL_RenderCopy(m_con.r.get(), t.get(), nullptr, &sdl::to_rect(r));
 	}

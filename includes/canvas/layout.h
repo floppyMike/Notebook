@@ -56,10 +56,15 @@ struct ScreenTexture
 // Text
 // -----------------------------------------------------------------------------
 
-struct TextInfo
+struct WorldTextInfo
 {
 	std::string str;
-	float scale;
+	float		scale;
+};
+
+struct ScreenTextInfo
+{
+	std::string str;
 };
 
 struct TextFont
@@ -73,7 +78,7 @@ struct TextFont
 
 struct CanvasContext
 {
-	Status status = PAINTING;
+	CanvasStatus status = PAINTING;
 
 	sdl::Camera2D cam;
 
@@ -85,8 +90,10 @@ struct CanvasContext
 	ScreenLineInfo target_line_info;
 	ScreenTexture  target_texture;
 
-	TextFont font;
+	std::vector<WorldTexture>  texts;
+	std::vector<WorldTextInfo> text_strs;
 
-	std::vector<WorldTexture> texts;
-	std::vector<TextInfo>	  text_strs;
+	TextFont	   target_font;
+	ScreenTextInfo target_text_str;
+	ScreenTexture  target_text;
 };
