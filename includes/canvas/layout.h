@@ -20,7 +20,7 @@ struct WorldLine
 
 struct WorldLineInfo
 {
-	uint8_t	  radius = 1;
+	float	  radius = 1.F;
 	float	  scale;
 	SDL_Color color = sdl::BLACK;
 };
@@ -42,14 +42,14 @@ struct ScreenLineInfo
 
 struct WorldTexture
 {
-	mth::Rect<float, float> dim;
-	TextureData				data;
+	mth::Rect<float> dim;
+	TextureData		 data;
 };
 
 struct ScreenTexture
 {
-	mth::Rect<int, int> dim;
-	TextureData			data;
+	mth::Rect<int> dim;
+	TextureData	   data;
 };
 
 // -----------------------------------------------------------------------------

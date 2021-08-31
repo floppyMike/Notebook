@@ -8,10 +8,10 @@ auto main(int argc, char **argv) -> int
 {
 	try
 	{
-		sdl::SDL s;
-		s.init_TTF();
+		sdl::SDL	 s;
+		sdl::SDL_TTF ttf;
 
-		App		 a;
+		App a;
 		sdl::run(&a, 61);
 	}
 	catch (const std::exception &e)
@@ -21,4 +21,3 @@ auto main(int argc, char **argv) -> int
 
 	return 0;
 }
-

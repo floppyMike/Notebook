@@ -11,7 +11,7 @@
 
 using namespace ctl;
 
-void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r, CanvasContext &c)
+inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r, CanvasContext &c)
 {
 	switch (e.type)
 	{
@@ -65,7 +65,7 @@ void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r
 			continue_stroke(w, r, c);
 
 		else if (ke.test(KeyEventMap::MOUSE_RIGHT))
-			for (size_t i : find_intersections(c, c.cam.screen_world(mth::Point{ e.motion.x, e.motion.y })))
+			for (size_t i : find_intersections(c, c.cam.screen_world(mth::Point<int>{ e.motion.x, e.motion.y })))
 			{
 				erase(c, i);
 				r.refresh();
@@ -74,7 +74,7 @@ void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r
 		break;
 
 	case SDL_MOUSEWHEEL:
-		c.cam.zoom(1.F + (float)e.wheel.y / 10.F, (mth::Point<float>)w.get_mousepos());
+		c.cam.zoom(1.F + (float)e.wheel.y / 10.F, w.get_mousepos());
 		r.refresh();
 
 		break;
@@ -97,7 +97,7 @@ void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r
 	}
 }
 
-void handle_typing(const SDL_Event &e, const KeyEvent &ke, Renderer &r, CanvasContext &c)
+inline void handle_typing(const SDL_Event &e, const KeyEvent &ke, Renderer &r, CanvasContext &c)
 {
 	switch (e.type)
 	{
@@ -125,7 +125,7 @@ public:
 	{
 		for (const auto &t : m_con.textures)
 		{
-			const auto world = m_con.cam.world_screen(mth::Rect{ t.dim.x, t.dim.y, t.dim.w, t.dim.h });
+			const auto world = m_con.cam.world_screen(t.dim);
 			r.draw_texture(t.data, world);
 		}
 
@@ -134,7 +134,7 @@ public:
 
 		for (const auto &t : m_con.texts)
 		{
-			const auto world = m_con.cam.world_screen(mth::Rect{ t.dim.x, t.dim.y, t.dim.w, t.dim.h });
+			const auto world = m_con.cam.world_screen(t.dim);
 			r.draw_texture(t.data, world);
 		}
 

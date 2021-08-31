@@ -18,7 +18,7 @@ struct RendererContext
 	std::vector<mth::Point<int>> circle_pattern;
 };
 
-auto translate_circle(const RendererContext &c, mth::Point<int> m) -> std::vector<SDL_Point>
+inline auto translate_circle(const RendererContext &c, mth::Point<int> m) -> std::vector<SDL_Point>
 {
 	std::vector<SDL_Point> buf(c.circle_pattern.size());
 	std::transform(c.circle_pattern.begin(), c.circle_pattern.end(), buf.begin(),
@@ -67,7 +67,7 @@ public:
 			for (auto y = -r; y <= +r; ++y)
 				// if (std::abs(y) + std::abs(x) <= r - 1)
 				if (y * y + x * x < r * r)
-					m_con.circle_pattern.emplace_back(x, y);
+					m_con.circle_pattern.push_back({ x, y });
 	}
 
 	void draw_conn_stroke(mth::Point<int> p, int r) const
@@ -111,17 +111,17 @@ public:
 		return t;
 	}
 
-	auto crop_texture(const TextureData &t, const mth::Rect<int, int> &r) const
+	auto crop_texture(const TextureData &t, const mth::Rect<int> &r) const
 	{
 		return sdl::crop(m_con.r.get(), t, r);
 	}
 
-	void draw_texture(const TextureData &t, const mth::Rect<int, int> &r) const
+	void draw_texture(const TextureData &t, const mth::Rect<int> &r) const
 	{
 		SDL_RenderCopy(m_con.r.get(), t.get(), nullptr, &sdl::to_rect(r));
 	}
 
-	void draw_rect(mth::Rect<int, int> r) const
+	void draw_rect(mth::Rect<int> r) const
 	{
 		SDL_RenderDrawRect(m_con.r.get(), &sdl::to_rect(r));
 	}
