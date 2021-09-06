@@ -63,7 +63,6 @@ public:
 
 		for (auto x = -r; x <= +r; ++x)
 			for (auto y = -r; y <= +r; ++y)
-				// if (std::abs(y) + std::abs(x) <= r - 1)
 				if (y * y + x * x < r * r)
 					m_con.circle_pattern.push_back({ x, y });
 	}

@@ -33,15 +33,6 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 		case SDLK_r: c.ssli.color = sdl::RED; break;
 		case SDLK_b: c.ssli.color = sdl::BLACK; break;
 
-		case SDLK_s: save(c); break;
-
-		case SDLK_l:
-			clear(c);
-			load(c);
-			redraw(r, c.swts, c.swls, c.swlis);
-			r.refresh();
-			break;
-
 		case SDLK_y: c.status = TYPING; break;
 		case SDLK_v: c.status = SELECTING; break;
 		}
@@ -49,13 +40,7 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 		break;
 
 	case SDL_MOUSEMOTION:
-		if (ke.test(KeyEventMap::MOUSE_MIDDLE))
-		{
-			c.cam.translate((float)-e.motion.xrel, (float)-e.motion.yrel);
-			r.refresh();
-		}
-
-		else if (ke.test(KeyEventMap::MOUSE_LEFT))
+		if (ke.test(KeyEventMap::MOUSE_LEFT))
 		{
 			continue_stroke(w, r, c.sst, c.ssl, c.ssli);
 			r.refresh();
@@ -68,12 +53,6 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 				erase(i, c.swts, c.swls, c.swlis);
 				r.refresh();
 			}
-
-		break;
-
-	case SDL_MOUSEWHEEL:
-		c.cam.zoom(1.F + (float)e.wheel.y / 10.F, w.get_mousepos());
-		r.refresh();
 
 		break;
 
@@ -191,11 +170,44 @@ public:
 
 	void event(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r)
 	{
+		switch (e.type)
+		{
+		case SDL_KEYDOWN:
+			switch (e.key.keysym.sym)
+			{
+			case SDLK_s: save(m_con); break;
+
+			case SDLK_l:
+				clear(m_con);
+				load(m_con);
+				redraw(r, m_con.swts, m_con.swls, m_con.swlis);
+				r.refresh();
+				break;
+			}
+
+			break;
+
+		case SDL_MOUSEMOTION:
+			if (ke.test(KeyEventMap::MOUSE_MIDDLE))
+			{
+				m_con.cam.translate((float)-e.motion.xrel, (float)-e.motion.yrel);
+				r.refresh();
+			}
+			break;
+
+		case SDL_MOUSEWHEEL:
+			m_con.cam.zoom(1.F + (float)e.wheel.y / 10.F, w.get_mousepos());
+			r.refresh();
+
+			break;
+		}
+
 		switch (m_con.status)
 		{
 		case PAINTING: handle_paint(e, ke, w, r, m_con); break;
 		case TYPING: handle_typing(e, ke, r, m_con); break;
 		case SELECTING: handle_selecting(e, ke, w, r, m_con); break;
+
 		default: break;
 		};
 	}
