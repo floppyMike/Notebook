@@ -56,6 +56,12 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 
 		break;
 
+	case SDL_MOUSEWHEEL:
+		c.cam.zoom(1.F + (float)e.wheel.y / 10.F, w.get_mousepos());
+		r.refresh();
+
+		break;
+
 	case SDL_MOUSEBUTTONDOWN:
 		switch (e.button.button)
 		{
@@ -124,9 +130,23 @@ inline void handle_selecting(const SDL_Event &e, const KeyEvent &ke, const Windo
 		break;
 
 	case SDL_MOUSEBUTTONDOWN:
-		const auto mp = w.get_mousepos();
-		c.select	  = { .wts = start_selecting(r, c.swts, c.cam.screen_world(mp)), .type = STROKE };
-		r.refresh();
+		if (e.button.button == SDL_BUTTON_LEFT)
+		{
+			const auto mp = w.get_mousepos();
+			c.select	  = { .wts = start_selecting(r, c.swts, c.cam.screen_world(mp)), .type = STROKE };
+			r.refresh();
+		}
+
+		break;
+
+	case SDL_MOUSEMOTION:
+		if (ke.test(KeyEventMap::MOUSE_LEFT) && c.select.wts != nullptr)
+		{
+			c.select.wts->dim.x += e.motion.xrel / c.cam.scale;
+			c.select.wts->dim.y += e.motion.yrel / c.cam.scale;
+
+			r.refresh();
+		}
 
 		break;
 	}
