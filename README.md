@@ -25,7 +25,7 @@ mkdir build && cd build
 ```
 cmake .. && cmake --build . --config Release
 ```
-4. The binary will be located at `.\build\Release\Notetaker.exe`. But to execute it you'll also need to place the `SDL2.dll` in the same directory
+4. The binary will be located at `.\build\Release\Notetaker.exe`. But to execute it you'll also need to place the dll files from `extern` into the same directory as the binary.
 
 ### Linux
 Before you start you should have the following programms installed:
