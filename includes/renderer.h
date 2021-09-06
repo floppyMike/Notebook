@@ -52,7 +52,7 @@ public:
 		SDL_SetRenderTarget(m_con.r.get(), t.get());
 	}
 
-	void y()
+	void render_target()
 	{
 		SDL_RenderPresent(m_con.r.get());
 	}

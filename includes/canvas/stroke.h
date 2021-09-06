@@ -68,17 +68,18 @@ inline void render_con(Renderer &r, ScreenTexture &st, const ScreenLineInfo &sli
 	r.set_draw_color(sli.color);
 	r.draw_conn_stroke(p, sli.radius);
 
-	r.y();
+	r.render_target();
 }
 
-inline void render_inter(Renderer &r, ScreenTexture &st, const ScreenLineInfo &sli, mth::Point<int> from, mth::Point<int> to)
+inline void render_inter(Renderer &r, ScreenTexture &st, const ScreenLineInfo &sli, mth::Point<int> from,
+						 mth::Point<int> to)
 {
 	r.set_render_target(st.data);
 
 	r.set_draw_color(sli.color);
 	r.draw_inter_stroke(from, to, sli.radius);
 
-	r.y();
+	r.render_target();
 }
 
 /**
@@ -141,7 +142,7 @@ inline auto transform_target_line(const sdl::Camera2D &cam, ScreenTexture &st, S
 
 	WorldLine wl = { .points = std::vector<mth::Point<float>>(sl.points.size()) };
 	std::transform(sl.points.begin(), sl.points.end(), wl.points.begin(),
-				   [&cam](mth::Point<int> p) { return cam.screen_world(p); });
+				   [&cam, &wt](mth::Point<int> p) { return cam.screen_world(p) - wt.dim.pos(); });
 
 	WorldLineInfo wli = { .radius = sli.radius * cam.scale, .scale = cam.scale, .color = sli.color };
 
@@ -171,19 +172,19 @@ inline auto find_line_intersections(const WorldTextureDB &wts, const WorldLineDB
 		if (mth::collision(p, wts[i].dim))
 			idx.emplace_back(i);
 
-	idx.erase(
-		std::remove_if(idx.begin(), idx.end(),
-					   [&wls, &wlis, p](const auto i)
-					   {
-						   return std::none_of(
-							   wls[i].points.begin(), wls[i].points.end(),
-							   [&wlis, i, p](mth::Point<float> l)
-							   {
-								   const mth::Rect<float> box = { l.x, l.y, wlis[i].radius * 2, wlis[i].radius * 2 };
-								   return mth::collision(p, box);
-							   });
-					   }),
-		idx.end());
+	idx.erase(std::remove_if(idx.begin(), idx.end(),
+							 [&wts, &wls, &wlis, p](const auto i)
+							 {
+								 return std::none_of(wls[i].points.begin(), wls[i].points.end(),
+													 [offset = wts[i].dim.pos(), &wlis, i, p](mth::Point<float> l)
+													 {
+														 const mth::Rect<float> box = { l.x + offset.x, l.y + offset.y,
+																						wlis[i].radius * 2,
+																						wlis[i].radius * 2 };
+														 return mth::collision(p, box);
+													 });
+							 }),
+			  idx.end());
 
 	return idx;
 }
@@ -202,7 +203,7 @@ inline void redraw(Renderer &r, WorldTextureDB &wts, const WorldLineDB &wls, con
 		const auto &wl	= wls[i];
 		const auto &wli = wlis[i];
 
-		sdl::Camera2D cam{ .loc = wt.dim.pos(), .scale = wli.scale };
+		sdl::Camera2D cam{ .loc = { 0.F, 0.F }, .scale = wli.scale };
 
 		const auto t_size = cam.world_screen(mth::Dim<float>{ wt.dim.w, wt.dim.h });
 		auto	   t	  = r.create_texture(t_size.w, t_size.h);
@@ -231,7 +232,7 @@ inline void redraw(Renderer &r, WorldTextureDB &wts, const WorldLineDB &wls, con
 			r.draw_conn_stroke(prev_pos, rad);
 
 		wt.data = std::move(t);
-		r.y();
+		r.render_target();
 	}
 }
 

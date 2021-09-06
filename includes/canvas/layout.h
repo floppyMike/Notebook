@@ -94,9 +94,9 @@ struct CanvasContext
 	WorldLineInfoDB swlis;
 	WorldTextureDB	swts;
 
-	ScreenLine	   target_line;
-	ScreenLineInfo target_line_info;
-	ScreenTexture  target_texture;
+	ScreenLine	   ssl;
+	ScreenLineInfo ssli;
+	ScreenTexture  sst;
 
 	std::vector<WorldTexture>  texts;
 	std::vector<WorldTextInfo> text_strs;

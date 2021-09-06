@@ -26,11 +26,11 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 	case SDL_KEYDOWN:
 		switch (e.key.keysym.sym)
 		{
-		case SDLK_UP: change_radius(r, c.target_line_info, c.target_line_info.radius + 1); break;
-		case SDLK_DOWN: change_radius(r, c.target_line_info, c.target_line_info.radius - 1); break;
+		case SDLK_UP: change_radius(r, c.ssli, c.ssli.radius + 1); break;
+		case SDLK_DOWN: change_radius(r, c.ssli, c.ssli.radius - 1); break;
 
-		case SDLK_r: c.target_line_info.color = sdl::RED; break;
-		case SDLK_b: c.target_line_info.color = sdl::BLACK; break;
+		case SDLK_r: c.ssli.color = sdl::RED; break;
+		case SDLK_b: c.ssli.color = sdl::BLACK; break;
 
 		case SDLK_s: save(c); break;
 
@@ -55,7 +55,7 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 
 		else if (ke.test(KeyEventMap::MOUSE_LEFT))
 		{
-			continue_stroke(w, r, c.target_texture, c.target_line, c.target_line_info);
+			continue_stroke(w, r, c.sst, c.ssl, c.ssli);
 			r.refresh();
 		}
 
@@ -79,7 +79,7 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 		switch (e.button.button)
 		{
 		case SDL_BUTTON_LEFT:
-			std::tie(c.target_texture, c.target_line) = start_stroke(w, r, c.target_line_info);
+			std::tie(c.sst, c.ssl) = start_stroke(w, r, c.ssli);
 			r.refresh();
 
 			break;
@@ -91,14 +91,14 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 		switch (e.button.button)
 		{
 		case SDL_BUTTON_LEFT:
-			c.target_texture   = finalize_stroke(w, r, c.target_texture, c.target_line, c.target_line_info);
-			auto [wt, wl, wli] = transform_target_line(c.cam, c.target_texture, c.target_line, c.target_line_info);
+			c.sst   = finalize_stroke(w, r, c.sst, c.ssl, c.ssli);
+			auto [wt, wl, wli] = transform_target_line(c.cam, c.sst, c.ssl, c.ssli);
 
 			c.swts.push_back(std::move(wt));
 			c.swls.push_back(std::move(wl));
 			c.swlis.push_back(wli);
 
-			clear_target_line(c.target_texture, c.target_line);
+			clear_target_line(c.sst, c.ssl);
 
 			r.refresh();
 
@@ -132,7 +132,7 @@ class Canvas
 public:
 	Canvas(Renderer &r)
 	{
-		r.set_stroke_radius(m_con.target_line_info.radius);
+		r.set_stroke_radius(m_con.ssli.radius);
 		m_con.target_font.data = r.create_font("/usr/share/fonts/TTF/NotoSansMono-Regular-Nerd-Font-Complete.ttf", 20);
 	}
 
@@ -144,8 +144,8 @@ public:
 			r.draw_texture(t.data, world);
 		}
 
-		if (m_con.target_texture.data)
-			r.draw_texture(m_con.target_texture.data, m_con.target_texture.dim);
+		if (m_con.sst.data)
+			r.draw_texture(m_con.sst.data, m_con.sst.dim);
 
 		for (const auto &t : m_con.texts)
 		{
