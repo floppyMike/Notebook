@@ -14,18 +14,18 @@
  *
  * @param c Get lines info and texture dimensions
  */
-void save(const CanvasContext &c)
+inline void save(const CanvasContext &c)
 {
 	static_assert(sizeof(SDL_Color) == 4, "SDL_Color must be 4 bytes long.");
 
 	pugi::xml_document doc;
 	auto			   node = doc.append_child("doc");
 
-	for (size_t i = 0; i < c.textures.size(); ++i)
+	for (size_t i = 0; i < c.swts.size(); ++i)
 	{
-		const auto &texture	  = c.textures[i];
-		const auto &line	  = c.lines[i];
-		const auto &line_info = c.lines_info[i];
+		const auto &texture	  = c.swts[i];
+		const auto &line	  = c.swls[i];
+		const auto &line_info = c.swlis[i];
 
 		auto lines_node = node.append_child("ls");
 
@@ -70,14 +70,14 @@ inline void load(CanvasContext &c)
 		const SDL_Color color	  = *(const SDL_Color *)&color_int;
 		const float		scale	  = ls.attribute("s").as_float();
 
-		c.textures.push_back({ .dim = { ls.attribute("x").as_float(), ls.attribute("y").as_float(),
+		c.swts.push_back({ .dim = { ls.attribute("x").as_float(), ls.attribute("y").as_float(),
 										ls.attribute("w").as_float(), ls.attribute("h").as_float() } });
 
 		std::vector<mth::Point<float>> ps;
 		for (auto l = ls.first_child(); l != nullptr; l = l.next_sibling())
 			ps.push_back({ l.attribute("x").as_float(), l.attribute("y").as_float() });
 
-		c.lines.push_back({ std::move(ps) });
-		c.lines_info.push_back({ radius, scale, color });
+		c.swls.push_back({ std::move(ps) });
+		c.swlis.push_back({ radius, scale, color });
 	}
 }

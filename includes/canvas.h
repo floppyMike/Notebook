@@ -1,5 +1,6 @@
 #pragma once
 
+#include <CustomLibrary/IO.h>
 #include <CustomLibrary/SDL/All.h>
 
 #include "renderer.h"
@@ -11,6 +12,13 @@
 
 using namespace ctl;
 
+inline void change_radius(Renderer &r, ScreenLineInfo &sli, int rad)
+{
+	sli.radius = std::clamp(rad, 1, 10);
+	ctl::print("Radius: %i\n", sli.radius);
+	r.set_stroke_radius(rad);
+}
+
 inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r, CanvasContext &c)
 {
 	switch (e.type)
@@ -18,19 +26,8 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 	case SDL_KEYDOWN:
 		switch (e.key.keysym.sym)
 		{
-		case SDLK_UP:
-			c.target_line_info.radius = std::min(c.target_line_info.radius + 1, 9);
-			std::clog << "Radius: " << +c.target_line_info.radius << std::endl;
-			r.set_stroke_radius(c.target_line_info.radius);
-
-			break;
-
-		case SDLK_DOWN:
-			c.target_line_info.radius = std::max(c.target_line_info.radius - 1, 1);
-			std::clog << "Radius: " << +c.target_line_info.radius << std::endl;
-			r.set_stroke_radius(c.target_line_info.radius);
-
-			break;
+		case SDLK_UP: change_radius(r, c.target_line_info, c.target_line_info.radius + 1); break;
+		case SDLK_DOWN: change_radius(r, c.target_line_info, c.target_line_info.radius - 1); break;
 
 		case SDLK_r: c.target_line_info.color = sdl::RED; break;
 		case SDLK_b: c.target_line_info.color = sdl::BLACK; break;
@@ -40,16 +37,11 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 		case SDLK_l:
 			clear(c);
 			load(c);
-			redraw(r, c);
+			redraw(r, c.swts, c.swls, c.swlis);
 			r.refresh();
 			break;
 
 		case SDLK_y: c.status = TYPING; break;
-
-		case SDLK_n:
-			for (const auto &i : c.lines_info) std::clog << i.scale << '\n';
-			std::clog << std::endl;
-			break;
 		}
 
 		break;
@@ -62,12 +54,16 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 		}
 
 		else if (ke.test(KeyEventMap::MOUSE_LEFT))
-			continue_stroke(w, r, c);
+		{
+			continue_stroke(w, r, c.target_texture, c.target_line, c.target_line_info);
+			r.refresh();
+		}
 
 		else if (ke.test(KeyEventMap::MOUSE_RIGHT))
-			for (size_t i : find_intersections(c, c.cam.screen_world(mth::Point<int>{ e.motion.x, e.motion.y })))
+			for (size_t i : find_line_intersections(c.swts, c.swls, c.swlis,
+													c.cam.screen_world(mth::Point<int>{ e.motion.x, e.motion.y })))
 			{
-				erase(c, i);
+				erase(i, c.swts, c.swls, c.swlis);
 				r.refresh();
 			}
 
@@ -82,7 +78,11 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 	case SDL_MOUSEBUTTONDOWN:
 		switch (e.button.button)
 		{
-		case SDL_BUTTON_LEFT: trace_stroke(w, r, c); break;
+		case SDL_BUTTON_LEFT:
+			std::tie(c.target_texture, c.target_line) = start_stroke(w, r, c.target_line_info);
+			r.refresh();
+
+			break;
 		}
 
 		break;
@@ -90,7 +90,19 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 	case SDL_MOUSEBUTTONUP:
 		switch (e.button.button)
 		{
-		case SDL_BUTTON_LEFT: finalize_stroke(w, r, c); break;
+		case SDL_BUTTON_LEFT:
+			c.target_texture   = finalize_stroke(w, r, c.target_texture, c.target_line, c.target_line_info);
+			auto [wt, wl, wli] = transform_target_line(c.cam, c.target_texture, c.target_line, c.target_line_info);
+
+			c.swts.push_back(std::move(wt));
+			c.swls.push_back(std::move(wl));
+			c.swlis.push_back(wli);
+
+			clear_target_line(c.target_texture, c.target_line);
+
+			r.refresh();
+
+			break;
 		}
 
 		break;
@@ -108,7 +120,10 @@ inline void handle_typing(const SDL_Event &e, const KeyEvent &ke, Renderer &r, C
 		}
 		break;
 
-	case SDL_MOUSEBUTTONDOWN: create_text_box(r, c); r.refresh(); break;
+	case SDL_MOUSEBUTTONDOWN:
+		create_text_box(r, c);
+		r.refresh();
+		break;
 	}
 }
 
@@ -123,7 +138,7 @@ public:
 
 	void draw(const Renderer &r)
 	{
-		for (const auto &t : m_con.textures)
+		for (const auto &t : m_con.swts)
 		{
 			const auto world = m_con.cam.world_screen(t.dim);
 			r.draw_texture(t.data, world);

@@ -4,4 +4,5 @@ enum CanvasStatus
 {
 	PAINTING,
 	TYPING,
+	SELECTING,
 };

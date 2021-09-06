@@ -18,12 +18,12 @@ using namespace ctl;
  *
  * @return Shrunk texture
  */
-inline auto shrink_to_fit(const Renderer &r, const CanvasContext &c) -> ScreenTexture
+inline auto get_line_dim(const Renderer &r, const ScreenLine &sl, const ScreenLineInfo &sli) -> mth::Rect<int>
 {
 	SDL_Point min = { std::numeric_limits<int>::max(), std::numeric_limits<int>::max() };
 	SDL_Point max = { 0, 0 };
 
-	for (const auto &p : c.target_line.points) // Find line range inside texture
+	for (const auto &p : sl.points) // Find line range inside texture
 	{
 		min.x = std::min(min.x, p.x);
 		min.y = std::min(min.y, p.y);
@@ -31,17 +31,15 @@ inline auto shrink_to_fit(const Renderer &r, const CanvasContext &c) -> ScreenTe
 		max.y = std::max(max.y, p.y);
 	}
 
-	min.x -= c.target_line_info.radius;
-	min.y -= c.target_line_info.radius;
-	max.x += c.target_line_info.radius;
-	max.y += c.target_line_info.radius;
+	min.x -= sli.radius;
+	min.y -= sli.radius;
+	max.x += sli.radius;
+	max.y += sli.radius;
 
 	const auto w = max.x - min.x;
 	const auto h = max.y - min.y;
 
-	const mth::Rect<int> rect = { min.x, min.y, w, h };
-
-	return { .dim = { rect.x, rect.y, rect.w, rect.h }, .data = r.crop_texture(c.target_texture.data, rect) };
+	return { min.x, min.y, w, h };
 }
 
 /**
@@ -50,35 +48,37 @@ inline auto shrink_to_fit(const Renderer &r, const CanvasContext &c) -> ScreenTe
  * @param c Using texture and lines array
  * @param i index to delete
  */
-inline void erase(CanvasContext &c, size_t i)
+template<typename U, typename... T>
+inline void erase(size_t i, U &arr, T &...arrs)
 {
-	assert((c.textures.size() == c.lines.size()) && "Textures and lines not same size.");
-	assert(!(c.textures.empty() || c.lines.empty()) && "Textures or lines empty.");
+	assert(((arr.size() == arrs.size()) && ...) && "Textures and lines not same size.");
+	assert(!(arr.empty() || (arrs.empty() || ...)) && "Textures or lines empty.");
 
-	std::swap(c.textures[i], c.textures.back());
-	std::swap(c.lines[i], c.lines.back());
-	std::swap(c.lines_info[i], c.lines_info.back());
+	std::swap(arr[i], arr.back());
+	(std::swap(arrs[i], arrs.back()), ...);
 
-	c.textures.erase(c.textures.end() - 1);
-	c.lines.erase(c.lines.end() - 1);
-	c.lines_info.erase(c.lines_info.end() - 1);
+	arr.erase(arr.end() - 1);
+	(arrs.erase(arrs.end() - 1), ...);
 }
 
-/**
- * @brief Render the start point
- *
- * @param r Draw onto texture
- * @param c Get texture and line data
- * @param p Get point to draw to
- */
-inline void render_start_stroke(Renderer &r, CanvasContext &c, mth::Point<int> p)
+inline void render_con(Renderer &r, ScreenTexture &st, const ScreenLineInfo &sli, mth::Point<int> p)
 {
-	r.set_draw_color(c.target_line_info.color);
+	r.set_render_target(st.data);
 
-	r.draw_conn_stroke(p, c.target_line_info.radius);
-	r.render_target();
-	r.draw_conn_stroke(p, c.target_line_info.radius);
-	r.render_target(c.target_texture.data);
+	r.set_draw_color(sli.color);
+	r.draw_conn_stroke(p, sli.radius);
+
+	r.y();
+}
+
+inline void render_inter(Renderer &r, ScreenTexture &st, const ScreenLineInfo &sli, mth::Point<int> from, mth::Point<int> to)
+{
+	r.set_render_target(st.data);
+
+	r.set_draw_color(sli.color);
+	r.draw_inter_stroke(from, to, sli.radius);
+
+	r.y();
 }
 
 /**
@@ -88,15 +88,18 @@ inline void render_start_stroke(Renderer &r, CanvasContext &c, mth::Point<int> p
  * @param r Render to texture and window
  * @param c Fill out target data
  */
-inline void trace_stroke(const Window &w, Renderer &r, CanvasContext &c)
+inline auto start_stroke(const Window &w, Renderer &r, const ScreenLineInfo &sli)
+	-> std::pair<ScreenTexture, ScreenLine>
 {
 	const auto mp	  = w.get_mousepos();
 	const auto w_size = w.get_windowsize();
 
-	c.target_texture = { .dim = { 0, 0, w_size.w, w_size.h }, .data = r.create_texture(w_size.w, w_size.h) };
-	c.target_line.points.push_back({ mp.x, mp.y });
+	ScreenTexture st = { .dim = { 0, 0, w_size.w, w_size.h }, .data = r.create_texture(w_size.w, w_size.h) };
+	ScreenLine	  sl = { .points = { { mp.x, mp.y } } };
 
-	render_start_stroke(r, c, mp);
+	render_con(r, st, sli, mp);
+
+	return { std::move(st), std::move(sl) };
 }
 
 /**
@@ -106,18 +109,11 @@ inline void trace_stroke(const Window &w, Renderer &r, CanvasContext &c)
  * @param r Render line to texture and window
  * @param c Add target data
  */
-inline void continue_stroke(const Window &w, Renderer &r, CanvasContext &c)
+inline void continue_stroke(const Window &w, Renderer &r, ScreenTexture &st, ScreenLine &sl, const ScreenLineInfo &sli)
 {
 	const auto mp = w.get_mousepos();
-
-	r.set_draw_color(c.target_line_info.color);
-
-	r.draw_inter_stroke(c.target_line.points.back(), mp, c.target_line_info.radius);
-	r.render_target();
-	r.draw_inter_stroke(c.target_line.points.back(), mp, c.target_line_info.radius);
-	r.render_target(c.target_texture.data);
-
-	c.target_line.points.emplace_back(mp);
+	render_inter(r, st, sli, sl.points.back(), mp);
+	sl.points.push_back(mp);
 }
 
 /**
@@ -127,23 +123,35 @@ inline void continue_stroke(const Window &w, Renderer &r, CanvasContext &c)
  * @param cam Calculating world
  * @param c Storing texture and line
  */
-inline void finalize_stroke(const Window &w, Renderer &r, CanvasContext &c)
+inline auto finalize_stroke(const Window &w, Renderer &r, ScreenTexture &st, ScreenLine &sl, const ScreenLineInfo &sli)
+	-> ScreenTexture
 {
-	render_start_stroke(r, c, w.get_mousepos());
+	render_con(r, st, sli, sl.points.back());
 
-	auto tex = shrink_to_fit(r, c);
+	const auto line_dim = get_line_dim(r, sl, sli);
+	auto	   tex		= r.crop_texture(st.data, line_dim);
 
-	c.textures.push_back({ .dim = c.cam.screen_world(tex.dim), .data = std::move(tex.data) });
+	return { .dim = line_dim, .data = std::move(tex) };
+}
 
-	std::vector<mth::Point<float>> points;
-	points.reserve(c.target_line.points.size());
-	for (auto p : c.target_line.points) points.emplace_back(c.cam.screen_world(p));
+inline auto transform_target_line(const sdl::Camera2D &cam, ScreenTexture &st, ScreenLine &sl,
+								  const ScreenLineInfo &sli) -> std::tuple<WorldTexture, WorldLine, WorldLineInfo>
+{
+	WorldTexture wt = { .dim = cam.screen_world(st.dim), .data = std::move(st.data) };
 
-	c.lines.push_back({ std::move(points) });
-	c.lines_info.push_back({ c.target_line_info.radius * c.cam.scale, c.cam.scale, c.target_line_info.color });
+	WorldLine wl = { .points = std::vector<mth::Point<float>>(sl.points.size()) };
+	std::transform(sl.points.begin(), sl.points.end(), wl.points.begin(),
+				   [&cam](mth::Point<int> p) { return cam.screen_world(p); });
 
-	c.target_line.points.clear();
-	c.target_texture.data.reset();
+	WorldLineInfo wli = { .radius = sli.radius * cam.scale, .scale = cam.scale, .color = sli.color };
+
+	return { std::move(wt), std::move(wl), wli };
+}
+
+inline auto clear_target_line(ScreenTexture &st, ScreenLine &sl)
+{
+	st.data.reset();
+	sl.points.clear();
 }
 
 /**
@@ -154,29 +162,30 @@ inline void finalize_stroke(const Window &w, Renderer &r, CanvasContext &c)
  *
  * @return Collection of indexes for collisions
  */
-inline auto find_intersections(const CanvasContext &c, const mth::Point<float> p) -> std::vector<size_t>
+inline auto find_line_intersections(const WorldTextureDB &wts, const WorldLineDB &wls, const WorldLineInfoDB &wlis,
+									mth::Point<float> p) -> std::vector<size_t>
 {
-	std::vector<size_t> res;
+	std::vector<size_t> idx;
 
-	for (int i = c.textures.size() - 1; i >= 0; --i)
-		if (mth::collision(p, c.textures[i].dim))
-			res.emplace_back(i);
+	for (int i = wts.size() - 1; i >= 0; --i)
+		if (mth::collision(p, wts[i].dim))
+			idx.emplace_back(i);
 
-	res.erase(std::remove_if(res.begin(), res.end(),
-							 [&c, p](const auto i)
-							 {
-								 return std::none_of(c.lines[i].points.begin(), c.lines[i].points.end(),
-													 [&c, i, p](mth::Point<float> l)
-													 {
-														 const mth::Rect<float> box = { l.x, l.y,
-																						c.lines_info[i].radius * 2,
-																						c.lines_info[i].radius * 2 };
-														 return mth::collision(p, box);
-													 });
-							 }),
-			  res.end());
+	idx.erase(
+		std::remove_if(idx.begin(), idx.end(),
+					   [&wls, &wlis, p](const auto i)
+					   {
+						   return std::none_of(
+							   wls[i].points.begin(), wls[i].points.end(),
+							   [&wlis, i, p](mth::Point<float> l)
+							   {
+								   const mth::Rect<float> box = { l.x, l.y, wlis[i].radius * 2, wlis[i].radius * 2 };
+								   return mth::collision(p, box);
+							   });
+					   }),
+		idx.end());
 
-	return res;
+	return idx;
 }
 
 /**
@@ -185,46 +194,45 @@ inline auto find_intersections(const CanvasContext &c, const mth::Point<float> p
  * @param r Draw & render lines onto textures
  * @param c Store the generated textures
  */
-inline void redraw(Renderer &r, CanvasContext &c)
+inline void redraw(Renderer &r, WorldTextureDB &wts, const WorldLineDB &wls, const WorldLineInfoDB &wlis)
 {
-	for (size_t i = 0; i < c.textures.size(); ++i)
+	for (size_t i = 0; i < wts.size(); ++i)
 	{
-		auto &		tex = c.textures[i];
-		const auto &l	= c.lines[i];
-		const auto &lf	= c.lines_info[i];
+		auto &		wt	= wts[i];
+		const auto &wl	= wls[i];
+		const auto &wli = wlis[i];
 
-		sdl::Camera2D cam{ .loc = tex.dim.pos(), .scale = lf.scale };
+		sdl::Camera2D cam{ .loc = wt.dim.pos(), .scale = wli.scale };
 
-		const auto t_size = cam.world_screen(mth::Dim<float>{ tex.dim.w, tex.dim.h });
+		const auto t_size = cam.world_screen(mth::Dim<float>{ wt.dim.w, wt.dim.h });
 		auto	   t	  = r.create_texture(t_size.w, t_size.h);
 
-		const auto rad = std::lrint(lf.radius / lf.scale);
+		const auto rad = std::lrint(wli.radius / wli.scale);
 
 		if (rad < 1)
 			throw std::runtime_error("Stroke radius is under 1");
 
-		r.set_draw_color(lf.color);
+		r.set_draw_color(wli.color);
 		r.set_stroke_radius(rad);
-		
-		auto prev_pos = cam.world_screen(l.points.front());
+		r.set_render_target(t);
+
+		auto prev_pos = cam.world_screen(wl.points.front());
 
 		r.draw_conn_stroke(prev_pos, rad);
 
-		for (auto p = l.points.begin() + 1; p != l.points.end(); ++p)
+		for (auto p = wl.points.begin() + 1; p != wl.points.end(); ++p)
 		{
 			const auto next_pos = cam.world_screen(*p);
 			r.draw_inter_stroke(prev_pos, next_pos, rad);
 			prev_pos = next_pos;
 		}
 
-		if (l.points.size() > 1)
+		if (wl.points.size() > 1)
 			r.draw_conn_stroke(prev_pos, rad);
 
-		r.render_target(t);
-		tex.data = std::move(t);
+		wt.data = std::move(t);
+		r.y();
 	}
-
-	r.set_stroke_radius(c.target_line_info.radius);
 }
 
 /**
@@ -234,7 +242,7 @@ inline void redraw(Renderer &r, CanvasContext &c)
  */
 inline void clear(CanvasContext &c)
 {
-	c.textures.clear();
-	c.lines.clear();
-	c.lines_info.clear();
+	c.swts.clear();
+	c.swls.clear();
+	c.swlis.clear();
 }

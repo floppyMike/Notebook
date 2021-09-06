@@ -47,15 +47,13 @@ public:
 		SDL_SetRenderDrawColor(m_con.r.get(), col.r, col.g, col.b, col.a);
 	}
 
-	void render_target()
-	{
-		SDL_SetRenderTarget(m_con.r.get(), nullptr);
-		SDL_RenderPresent(m_con.r.get());
-	}
-
-	void render_target(const TextureData &t)
+	void set_render_target(const TextureData &t)
 	{
 		SDL_SetRenderTarget(m_con.r.get(), t.get());
+	}
+
+	void y()
+	{
 		SDL_RenderPresent(m_con.r.get());
 	}
 
@@ -124,6 +122,11 @@ public:
 	void draw_rect(mth::Rect<int> r) const
 	{
 		SDL_RenderDrawRect(m_con.r.get(), &sdl::to_rect(r));
+	}
+
+	void draw_line(mth::Point<int> start, mth::Point<int> end) const
+	{
+		SDL_RenderDrawLine(m_con.r.get(), start.x, start.y, end.x, end.y);
 	}
 
 	void refresh()

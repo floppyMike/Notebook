@@ -20,9 +20,9 @@ struct WorldLine
 
 struct WorldLineInfo
 {
-	float	  radius = 1.F;
+	float	  radius;
 	float	  scale;
-	SDL_Color color = sdl::BLACK;
+	SDL_Color color;
 };
 
 struct ScreenLine
@@ -73,6 +73,14 @@ struct TextFont
 };
 
 // -----------------------------------------------------------------------------
+// DBs
+// -----------------------------------------------------------------------------
+
+using WorldLineDB	  = std::vector<WorldLine>;
+using WorldLineInfoDB = std::vector<WorldLineInfo>;
+using WorldTextureDB  = std::vector<WorldTexture>;
+
+// -----------------------------------------------------------------------------
 // Context
 // -----------------------------------------------------------------------------
 
@@ -82,9 +90,9 @@ struct CanvasContext
 
 	sdl::Camera2D cam;
 
-	std::vector<WorldLine>	   lines;
-	std::vector<WorldLineInfo> lines_info;
-	std::vector<WorldTexture>  textures;
+	WorldLineDB		swls;
+	WorldLineInfoDB swlis;
+	WorldTextureDB	swts;
 
 	ScreenLine	   target_line;
 	ScreenLineInfo target_line_info;
@@ -96,4 +104,7 @@ struct CanvasContext
 	TextFont	   target_font;
 	ScreenTextInfo target_text_str;
 	ScreenTexture  target_text;
+
+	ScreenTexture select_texture;
+	ScreenLine	  select_line;
 };
