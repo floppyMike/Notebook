@@ -9,6 +9,7 @@
 #include "canvas/stroke.h"
 #include "canvas/save.h"
 #include "canvas/text.h"
+#include "canvas/box.h"
 
 using namespace ctl;
 
@@ -42,6 +43,7 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 			break;
 
 		case SDLK_y: c.status = TYPING; break;
+		case SDLK_v: c.status = SELECTING; break;
 		}
 
 		break;
@@ -91,7 +93,7 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 		switch (e.button.button)
 		{
 		case SDL_BUTTON_LEFT:
-			c.sst   = finalize_stroke(w, r, c.sst, c.ssl, c.ssli);
+			c.sst			   = finalize_stroke(w, r, c.sst, c.ssl, c.ssli);
 			auto [wt, wl, wli] = transform_target_line(c.cam, c.sst, c.ssl, c.ssli);
 
 			c.swts.push_back(std::move(wt));
@@ -127,6 +129,30 @@ inline void handle_typing(const SDL_Event &e, const KeyEvent &ke, Renderer &r, C
 	}
 }
 
+inline void handle_selecting(const SDL_Event &e, const KeyEvent &ke, const Window &w, Renderer &r, CanvasContext &c)
+{
+	switch (e.type)
+	{
+	case SDL_KEYDOWN:
+		switch (e.key.keysym.sym)
+		{
+		case SDLK_v:
+			c.status	 = PAINTING;
+			c.select.wts = nullptr;
+			break;
+		}
+
+		break;
+
+	case SDL_MOUSEBUTTONDOWN:
+		const auto mp = w.get_mousepos();
+		c.select	  = { .wts = start_selecting(r, c.swts, c.cam.screen_world(mp)), .type = STROKE };
+		r.refresh();
+
+		break;
+	}
+}
+
 class Canvas
 {
 public:
@@ -155,6 +181,12 @@ public:
 
 		if (m_con.target_text.data)
 			r.draw_texture(m_con.target_text.data, m_con.target_text.dim);
+
+		if (m_con.select.wts != nullptr)
+		{
+			r.set_draw_color(sdl::BLUE);
+			r.draw_rect(m_con.cam.world_screen(m_con.select.wts->dim));
+		}
 	}
 
 	void event(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r)
@@ -163,6 +195,7 @@ public:
 		{
 		case PAINTING: handle_paint(e, ke, w, r, m_con); break;
 		case TYPING: handle_typing(e, ke, r, m_con); break;
+		case SELECTING: handle_selecting(e, ke, w, r, m_con); break;
 		default: break;
 		};
 	}

@@ -124,6 +124,11 @@ public:
 		SDL_RenderDrawRect(m_con.r.get(), &sdl::to_rect(r));
 	}
 
+	void draw_rect(mth::Rect<float> r) const
+	{
+		SDL_RenderDrawRectF(m_con.r.get(), &sdl::to_rect(r));
+	}
+
 	void draw_line(mth::Point<int> start, mth::Point<int> end) const
 	{
 		SDL_RenderDrawLine(m_con.r.get(), start.x, start.y, end.x, end.y);

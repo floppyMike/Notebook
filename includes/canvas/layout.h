@@ -73,6 +73,22 @@ struct TextFont
 };
 
 // -----------------------------------------------------------------------------
+// Selection
+// -----------------------------------------------------------------------------
+
+enum CanvasType
+{
+	STROKE,
+	TEXT,
+};
+
+struct Select
+{
+	WorldTexture *wts;
+	CanvasType	  type;
+};
+
+// -----------------------------------------------------------------------------
 // DBs
 // -----------------------------------------------------------------------------
 
@@ -105,6 +121,5 @@ struct CanvasContext
 	ScreenTextInfo target_text_str;
 	ScreenTexture  target_text;
 
-	ScreenTexture select_texture;
-	ScreenLine	  select_line;
+	Select select;
 };
