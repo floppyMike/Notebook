@@ -33,8 +33,8 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 		case SDLK_r: c.ssli.color = sdl::RED; break;
 		case SDLK_b: c.ssli.color = sdl::BLACK; break;
 
-		case SDLK_y: c.status = TYPING; break;
 		case SDLK_v: c.status = SELECTING; break;
+		// case SDLK_y: c.status = TYPING; break;
 		}
 
 		break;
@@ -103,13 +103,8 @@ inline void handle_typing(const SDL_Event &e, const KeyEvent &ke, Renderer &r, C
 	case SDL_KEYDOWN:
 		switch (e.key.keysym.sym)
 		{
-		case SDLK_y: c.status = PAINTING; break;
+		case SDLK_y: c.status = SELECTING; break;
 		}
-		break;
-
-	case SDL_MOUSEBUTTONDOWN:
-		create_text_box(r, c);
-		r.refresh();
 		break;
 	}
 }
@@ -124,6 +119,11 @@ inline void handle_selecting(const SDL_Event &e, const KeyEvent &ke, const Windo
 		case SDLK_v:
 			c.status	 = PAINTING;
 			c.select.wts = nullptr;
+			break;
+
+		case SDLK_y:
+			if (c.select.type == TEXT)
+				c.status = TYPING;
 			break;
 		}
 
