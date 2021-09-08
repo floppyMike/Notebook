@@ -41,6 +41,7 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 
 			c.txwtxis.push_back({ .str = "", .scale = c.cam.scale });
 			c.txwts.push_back({ .dim = { wp.x, wp.y, 0, 0 }, .data = {} });
+			c.txe = c.txwts.size() - 1;
 
 			r.refresh();
 
@@ -122,16 +123,16 @@ inline void handle_typing(const SDL_Event &e, const KeyEvent &ke, Renderer &r, C
 			break;
 
 		case SDLK_BACKSPACE:
-			remove_character(c.txwtxis.back());
-			regen_text(r, c.txf, c.txwts.back(), c.txwtxis.back());
+			remove_character(c.txwtxis[c.txe]);
+			regen_text(r, c.txf, c.txwts[c.txe], c.txwtxis[c.txe]);
 
 			r.refresh();
 
 			break;
 
 		case SDLK_RETURN:
-			add_character('\n', c.txwtxis.back());
-			regen_text(r, c.txf, c.txwts.back(), c.txwtxis.back());
+			add_character('\n', c.txwtxis[c.txe]);
+			regen_text(r, c.txf, c.txwts[c.txe], c.txwtxis[c.txe]);
 
 			r.refresh();
 
@@ -141,8 +142,8 @@ inline void handle_typing(const SDL_Event &e, const KeyEvent &ke, Renderer &r, C
 		break;
 
 	case SDL_TEXTINPUT:
-		add_character(e.text.text[0], c.txwtxis.back());
-		regen_text(r, c.txf, c.txwts.back(), c.txwtxis.back());
+		add_character(e.text.text[0], c.txwtxis[c.txe]);
+		regen_text(r, c.txf, c.txwts[c.txe], c.txwtxis[c.txe]);
 
 		r.refresh();
 
