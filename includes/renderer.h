@@ -8,7 +8,7 @@
 using namespace ctl;
 
 using TextureData = sdl::Texture;
-using FontData = sdl::Font;
+using FontData	  = sdl::Font;
 
 struct RendererContext
 {
@@ -50,6 +50,14 @@ public:
 	void set_render_target(const TextureData &t)
 	{
 		SDL_SetRenderTarget(m_con.r.get(), t.get());
+	}
+
+	auto get_texture_size(const TextureData &t)
+	{
+		mth::Dim<int> d;
+		SDL_QueryTexture(t.get(), nullptr, nullptr, &d.w, &d.h);
+
+		return d;
 	}
 
 	void render_target()
@@ -97,7 +105,7 @@ public:
 	auto create_text(const FontData &f, const char *text) const
 	{
 		auto *s = TTF_RenderText_Blended_Wrapped(f.get(), text, sdl::BLACK, 200);
-		
+
 		if (s == nullptr)
 			throw std::runtime_error(TTF_GetError());
 
