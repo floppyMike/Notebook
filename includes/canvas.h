@@ -17,7 +17,7 @@ inline void change_radius(Renderer &r, ScreenLineInfo &sli, int rad)
 {
 	sli.radius = std::clamp(rad, 1, 10);
 	ctl::print("Radius: %i\n", sli.radius);
-	r.set_stroke_radius(rad);
+	r.set_stroke_radius(sli.radius);
 }
 
 inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r, CanvasContext &c)
@@ -39,7 +39,6 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 
 			const auto wp = c.cam.screen_world(w.get_mousepos());
 
-			ctl::print("Scale: %f\n", c.cam.scale);
 			c.txwtxis.push_back({ .str = "", .scale = c.cam.scale });
 			c.txwts.push_back({ .dim = { wp.x, wp.y, 0, 0 }, .data = {} });
 
@@ -142,8 +141,6 @@ inline void handle_typing(const SDL_Event &e, const KeyEvent &ke, Renderer &r, C
 		break;
 
 	case SDL_TEXTINPUT:
-		ctl::print("Key: %c\n", e.text.text[0]);
-
 		add_character(e.text.text[0], c.txwtxis.back());
 		regen_text(r, c.txf, c.txwts.back(), c.txwtxis.back());
 
