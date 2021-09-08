@@ -104,7 +104,7 @@ public:
 
 	auto create_text(const FontData &f, const char *text) const
 	{
-		auto *s = TTF_RenderText_Blended_Wrapped(f.get(), text, sdl::BLACK, 300);
+		auto *s = TTF_RenderText_Blended_Wrapped(f.get(), text, sdl::BLACK, 600);
 
 		if (s == nullptr)
 			throw std::runtime_error(TTF_GetError());
