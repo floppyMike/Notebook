@@ -234,7 +234,11 @@ public:
 	Canvas(Renderer &r)
 	{
 		r.set_stroke_radius(m_con.ssli.radius);
-		m_con.txf.data = r.create_font("/usr/share/fonts/TTF/NotoSansMono-Regular-Nerd-Font-Complete.ttf", 20);
+#ifdef _WIN32
+		m_con.txf.data = r.create_font("\\Windows\\Fonts\\arial.ttf", 30);
+#else
+		m_con.txf.data = r.create_font("/usr/share/fonts/TTF/DejaVuSans.ttf", 30);
+#endif
 	}
 
 	void draw(const Renderer &r)
