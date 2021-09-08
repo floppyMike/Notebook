@@ -112,7 +112,7 @@ struct CanvasContext
 	ScreenLineInfo ssli;
 	ScreenTexture  sst;
 
-	size_t txe;
+	size_t			txe;
 	WorldTextureDB	txwts;
 	WorldTextInfoDB txwtxis;
 

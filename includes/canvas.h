@@ -171,14 +171,13 @@ inline void handle_selecting(const SDL_Event &e, const KeyEvent &ke, const Windo
 		{
 			const auto wp = c.cam.screen_world(w.get_mousepos());
 
-			WorldTexture* selected;
-			CanvasType ct;
+			WorldTexture *selected;
+			CanvasType	  ct;
 
 			if ((ct = STROKE, selected = start_selecting(r, c.swts, wp)) == nullptr)
 				ct = TEXT, selected = start_selecting(r, c.txwts, wp);
 
-
-			c.select	  = { .wts = selected, .type = ct };
+			c.select = { .wts = selected, .type = ct };
 			r.refresh();
 		}
 
@@ -197,11 +196,9 @@ inline void handle_selecting(const SDL_Event &e, const KeyEvent &ke, const Windo
 	}
 }
 
-inline void handle_camera(const SDL_Event &e, const KeyEvent &ke, const Window &w, Renderer &r, CanvasContext &c)
+inline void handle_save(const SDL_Event &e, const KeyEvent &ke, const Window &w, Renderer &r, CanvasContext &c)
 {
-	switch (e.type)
-	{
-	case SDL_KEYDOWN:
+	if (e.type == SDL_KEYDOWN)
 		switch (e.key.keysym.sym)
 		{
 		case SDLK_s: save(c); break;
@@ -219,9 +216,12 @@ inline void handle_camera(const SDL_Event &e, const KeyEvent &ke, const Window &
 
 			break;
 		}
+}
 
-		break;
-
+inline void handle_camera(const SDL_Event &e, const KeyEvent &ke, const Window &w, Renderer &r, CanvasContext &c)
+{
+	switch (e.type)
+	{
 	case SDL_MOUSEMOTION:
 		if (ke.test(KeyEventMap::MOUSE_MIDDLE))
 		{
@@ -284,8 +284,11 @@ public:
 		{
 		case PAINTING: handle_paint(e, ke, w, r, m_con); break;
 		case SELECTING: handle_selecting(e, ke, w, r, m_con); break;
-		case TYPING: handle_typing(e, ke, r, m_con); break;
+
+		case TYPING: handle_typing(e, ke, r, m_con); return;
 		};
+
+		handle_save(e, ke, w, r, m_con);
 	}
 
 private:
