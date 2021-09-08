@@ -32,7 +32,7 @@ struct ScreenLine
 
 struct ScreenLineInfo
 {
-	uint8_t	  radius = 1;
+	uint8_t	  radius = 3;
 	SDL_Color color	 = sdl::BLACK;
 };
 
@@ -62,11 +62,6 @@ struct WorldTextInfo
 	float		scale;
 };
 
-struct ScreenTextInfo
-{
-	std::string str;
-};
-
 struct TextFont
 {
 	FontData data;
@@ -92,9 +87,12 @@ struct Select
 // DBs
 // -----------------------------------------------------------------------------
 
+using WorldTextureDB = std::vector<WorldTexture>;
+
 using WorldLineDB	  = std::vector<WorldLine>;
 using WorldLineInfoDB = std::vector<WorldLineInfo>;
-using WorldTextureDB  = std::vector<WorldTexture>;
+
+using WorldTextInfoDB = std::vector<WorldTextInfo>;
 
 // -----------------------------------------------------------------------------
 // Context
@@ -114,12 +112,10 @@ struct CanvasContext
 	ScreenLineInfo ssli;
 	ScreenTexture  sst;
 
-	std::vector<WorldTexture>  texts;
-	std::vector<WorldTextInfo> text_strs;
+	WorldTextureDB	txwts;
+	WorldTextInfoDB txwtxis;
 
-	TextFont	   target_font;
-	ScreenTextInfo target_text_str;
-	ScreenTexture  target_text;
+	TextFont txf;
 
 	Select select;
 };

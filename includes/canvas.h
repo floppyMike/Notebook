@@ -34,7 +34,21 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 		case SDLK_b: c.ssli.color = sdl::BLACK; break;
 
 		case SDLK_v: c.status = SELECTING; break;
-		// case SDLK_y: c.status = TYPING; break;
+		case SDLK_y:
+			c.status = TYPING;
+
+			const auto wp = c.cam.screen_world(w.get_mousepos());
+
+			ctl::print("Scale: %f\n", c.cam.scale);
+			c.txwtxis.push_back({ .str = "", .scale = c.cam.scale });
+			c.txwts.push_back({ .dim = { wp.x, wp.y, 0, 0 }, .data = {} });
+
+			r.refresh();
+
+			SDL_StartTextInput();
+			SDL_FlushEvent(SDL_TEXTINPUT);
+
+			break;
 		}
 
 		break;
@@ -103,8 +117,38 @@ inline void handle_typing(const SDL_Event &e, const KeyEvent &ke, Renderer &r, C
 	case SDL_KEYDOWN:
 		switch (e.key.keysym.sym)
 		{
-		case SDLK_y: c.status = SELECTING; break;
+		case SDLK_ESCAPE:
+			c.status = PAINTING;
+			SDL_StopTextInput();
+			break;
+
+		case SDLK_BACKSPACE:
+			remove_character(c.txwtxis.back());
+			regen_text(r, c.txf, c.txwts.back(), c.txwtxis.back());
+
+			r.refresh();
+
+			break;
+
+		case SDLK_RETURN:
+			add_character('\n', c.txwtxis.back());
+			regen_text(r, c.txf, c.txwts.back(), c.txwtxis.back());
+
+			r.refresh();
+
+			break;
 		}
+
+		break;
+
+	case SDL_TEXTINPUT:
+		ctl::print("Key: %c\n", e.text.text[0]);
+
+		add_character(e.text.text[0], c.txwtxis.back());
+		regen_text(r, c.txf, c.txwts.back(), c.txwtxis.back());
+
+		r.refresh();
+
 		break;
 	}
 }
@@ -119,11 +163,6 @@ inline void handle_selecting(const SDL_Event &e, const KeyEvent &ke, const Windo
 		case SDLK_v:
 			c.status	 = PAINTING;
 			c.select.wts = nullptr;
-			break;
-
-		case SDLK_y:
-			if (c.select.type == TEXT)
-				c.status = TYPING;
 			break;
 		}
 
@@ -152,13 +191,50 @@ inline void handle_selecting(const SDL_Event &e, const KeyEvent &ke, const Windo
 	}
 }
 
+inline void handle_camera(const SDL_Event &e, const KeyEvent &ke, const Window &w, Renderer &r, CanvasContext &c)
+{
+	switch (e.type)
+	{
+	case SDL_KEYDOWN:
+		switch (e.key.keysym.sym)
+		{
+		case SDLK_s: save(c); break;
+
+		case SDLK_l:
+			clear(c);
+			load(c);
+			redraw(r, c.swts, c.swls, c.swlis);
+			r.refresh();
+
+			break;
+		}
+
+		break;
+
+	case SDL_MOUSEMOTION:
+		if (ke.test(KeyEventMap::MOUSE_MIDDLE))
+		{
+			c.cam.translate((float)-e.motion.xrel, (float)-e.motion.yrel);
+			r.refresh();
+		}
+
+		break;
+
+	case SDL_MOUSEWHEEL:
+		c.cam.zoom(1.F + (float)e.wheel.y / 10.F, w.get_mousepos());
+		r.refresh();
+
+		break;
+	}
+}
+
 class Canvas
 {
 public:
 	Canvas(Renderer &r)
 	{
 		r.set_stroke_radius(m_con.ssli.radius);
-		m_con.target_font.data = r.create_font("/usr/share/fonts/TTF/NotoSansMono-Regular-Nerd-Font-Complete.ttf", 20);
+		m_con.txf.data = r.create_font("/usr/share/fonts/TTF/NotoSansMono-Regular-Nerd-Font-Complete.ttf", 20);
 	}
 
 	void draw(const Renderer &r)
@@ -172,14 +248,11 @@ public:
 		if (m_con.sst.data)
 			r.draw_texture(m_con.sst.data, m_con.sst.dim);
 
-		for (const auto &t : m_con.texts)
+		for (const auto &t : m_con.txwts)
 		{
 			const auto world = m_con.cam.world_screen(t.dim);
 			r.draw_texture(t.data, world);
 		}
-
-		if (m_con.target_text.data)
-			r.draw_texture(m_con.target_text.data, m_con.target_text.dim);
 
 		if (m_con.select.wts != nullptr)
 		{
@@ -190,45 +263,13 @@ public:
 
 	void event(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r)
 	{
-		switch (e.type)
-		{
-		case SDL_KEYDOWN:
-			switch (e.key.keysym.sym)
-			{
-			case SDLK_s: save(m_con); break;
-
-			case SDLK_l:
-				clear(m_con);
-				load(m_con);
-				redraw(r, m_con.swts, m_con.swls, m_con.swlis);
-				r.refresh();
-				break;
-			}
-
-			break;
-
-		case SDL_MOUSEMOTION:
-			if (ke.test(KeyEventMap::MOUSE_MIDDLE))
-			{
-				m_con.cam.translate((float)-e.motion.xrel, (float)-e.motion.yrel);
-				r.refresh();
-			}
-			break;
-
-		case SDL_MOUSEWHEEL:
-			m_con.cam.zoom(1.F + (float)e.wheel.y / 10.F, w.get_mousepos());
-			r.refresh();
-
-			break;
-		}
+		handle_camera(e, ke, w, r, m_con);
 
 		switch (m_con.status)
 		{
 		case PAINTING: handle_paint(e, ke, w, r, m_con); break;
-		case TYPING: handle_typing(e, ke, r, m_con); break;
 		case SELECTING: handle_selecting(e, ke, w, r, m_con); break;
-
-		default: break;
+		case TYPING: handle_typing(e, ke, r, m_con); break;
 		};
 	}
 
