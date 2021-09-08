@@ -241,9 +241,9 @@ inline void redraw(Renderer &r, WorldTextureDB &wts, const WorldLineDB &wls, con
  *
  * @param c Access the data to be cleared
  */
-inline void clear(CanvasContext &c)
+inline void clear_canvas(WorldTextureDB &wts, WorldLineDB &wls, WorldLineInfoDB &wlis)
 {
-	c.swts.clear();
-	c.swls.clear();
-	c.swlis.clear();
+	wts.clear();
+	wls.clear();
+	wlis.clear();
 }

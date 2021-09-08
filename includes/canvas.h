@@ -168,8 +168,16 @@ inline void handle_selecting(const SDL_Event &e, const KeyEvent &ke, const Windo
 	case SDL_MOUSEBUTTONDOWN:
 		if (e.button.button == SDL_BUTTON_LEFT)
 		{
-			const auto mp = w.get_mousepos();
-			c.select	  = { .wts = start_selecting(r, c.swts, c.cam.screen_world(mp)), .type = STROKE };
+			const auto wp = c.cam.screen_world(w.get_mousepos());
+
+			WorldTexture* selected;
+			CanvasType ct;
+
+			if ((ct = STROKE, selected = start_selecting(r, c.swts, wp)) == nullptr)
+				ct = TEXT, selected = start_selecting(r, c.txwts, wp);
+
+
+			c.select	  = { .wts = selected, .type = ct };
 			r.refresh();
 		}
 
@@ -198,9 +206,14 @@ inline void handle_camera(const SDL_Event &e, const KeyEvent &ke, const Window &
 		case SDLK_s: save(c); break;
 
 		case SDLK_l:
-			clear(c);
+			clear_canvas(c.swts, c.swls, c.swlis);
+			clear_texts(c.txwts, c.txwtxis);
+
 			load(c);
+
 			redraw(r, c.swts, c.swls, c.swlis);
+			regen_texts(r, c.txf, c.txwts, c.txwtxis);
+
 			r.refresh();
 
 			break;
