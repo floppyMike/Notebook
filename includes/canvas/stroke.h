@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include <CustomLibrary/IO.h>
 #include <CustomLibrary/Collider.h>
 
 #include "window.h"
@@ -246,4 +247,115 @@ inline void clear_canvas(WorldTextureDB &wts, WorldLineDB &wls, WorldLineInfoDB 
 	wts.clear();
 	wls.clear();
 	wlis.clear();
+}
+
+inline void change_radius(Renderer &r, ScreenLineInfo &sli, int rad)
+{
+	sli.radius = std::clamp(rad, 1, 10);
+	ctl::print("Radius: %i\n", sli.radius);
+	r.set_stroke_radius(sli.radius);
+}
+
+// ------------------------------------------------
+
+inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r, CanvasContext &c)
+{
+	switch (e.type)
+	{
+	case SDL_KEYDOWN:
+		switch (e.key.keysym.sym)
+		{
+		case SDLK_UP: change_radius(r, c.ssli, c.ssli.radius + 1); break;
+		case SDLK_DOWN: change_radius(r, c.ssli, c.ssli.radius - 1); break;
+
+		case SDLK_r: c.ssli.color = sdl::RED; break;
+		case SDLK_b: c.ssli.color = sdl::BLACK; break;
+
+		case SDLK_v: c.status = SELECTING; break;
+		case SDLK_y:
+			c.status = TYPING;
+
+			const auto wp = c.cam.screen_world(w.get_mousepos());
+
+			c.txwtxis.push_back({ .str = "", .scale = c.cam.scale });
+			c.txwts.push_back({ .dim = { wp.x, wp.y, 0, 0 }, .data = {} });
+			c.txe = c.txwts.size() - 1;
+
+			r.refresh();
+
+			SDL_StartTextInput();
+			SDL_FlushEvent(SDL_TEXTINPUT);
+
+			break;
+		}
+
+		break;
+
+	case SDL_MOUSEMOTION:
+		if (ke.test(KeyEventMap::MOUSE_LEFT))
+		{
+			continue_stroke(w, r, c.sst, c.ssl, c.ssli);
+			r.refresh();
+		}
+
+		else if (ke.test(KeyEventMap::MOUSE_RIGHT))
+			for (size_t i : find_line_intersections(c.swts, c.swls, c.swlis,
+													c.cam.screen_world(mth::Point<int>{ e.motion.x, e.motion.y })))
+			{
+				erase(i, c.swts, c.swls, c.swlis);
+				r.refresh();
+			}
+
+		break;
+
+	case SDL_MOUSEWHEEL:
+		c.cam.zoom(1.F + (float)e.wheel.y / 10.F, w.get_mousepos());
+		r.refresh();
+
+		break;
+
+	case SDL_MOUSEBUTTONDOWN:
+		switch (e.button.button)
+		{
+		case SDL_BUTTON_LEFT:
+			std::tie(c.sst, c.ssl) = start_stroke(w, r, c.ssli);
+			r.refresh();
+
+			break;
+		}
+
+		break;
+
+	case SDL_MOUSEBUTTONUP:
+		switch (e.button.button)
+		{
+		case SDL_BUTTON_LEFT:
+			c.sst			   = finalize_stroke(w, r, c.sst, c.ssl, c.ssli);
+			auto [wt, wl, wli] = transform_target_line(c.cam, c.sst, c.ssl, c.ssli);
+
+			c.swts.push_back(std::move(wt));
+			c.swls.push_back(std::move(wl));
+			c.swlis.push_back(wli);
+
+			clear_target_line(c.sst, c.ssl);
+
+			r.refresh();
+
+			break;
+		}
+
+		break;
+	}
+}
+
+inline void draw_strokes(const Renderer &r, CanvasContext &c)
+{
+	for (const auto &t : c.swts)
+	{
+		const auto world = c.cam.world_screen(t.dim);
+		r.draw_texture(t.data, world);
+	}
+
+	if (c.sst.data)
+		r.draw_texture(c.sst.data, c.sst.dim);
 }
