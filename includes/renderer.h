@@ -75,7 +75,7 @@ public:
 					m_con.circle_pattern.push_back({ x, y });
 	}
 
-	void draw_conn_stroke(mth::Point<int> p, int r) const
+	void draw_joint_stroke(mth::Point<int> p, int r) const
 	{
 		assert(!m_con.circle_pattern.empty() && "Circle pattern not generated yet.");
 
@@ -83,7 +83,7 @@ public:
 		SDL_RenderDrawPoints(m_con.r.get(), buf.data(), (int)m_con.circle_pattern.size());
 	}
 
-	void draw_inter_stroke(mth::Point<int> from, mth::Point<int> to, int r) const
+	void draw_con_stroke(mth::Point<int> from, mth::Point<int> to, int r) const
 	{
 		for (int i = -(r - 1); i <= r - 1; ++i)
 		{

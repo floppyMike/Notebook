@@ -29,12 +29,6 @@ inline void regen_texts(Renderer &r, const TextFont &tf, WorldTextureDB &wtxs, W
 	}
 }
 
-inline void clear_texts(WorldTextureDB &wts, WorldTextInfoDB &wtxis)
-{
-	wts.clear();
-	wtxis.clear();
-}
-
 inline void add_character(char ch, WorldTextInfo &stxi)
 {
 	stxi.str.push_back(ch);

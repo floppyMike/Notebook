@@ -24,8 +24,7 @@ inline void handle_save(const SDL_Event &e, const KeyEvent &ke, const Window &w,
 		case SDLK_s: save(c); break;
 
 		case SDLK_l:
-			clear_canvas(c.swts, c.swls, c.swlis);
-			clear_texts(c.txwts, c.txwtxis);
+			clear(c.swts, c.swls, c.swlis, c.txwts, c.txwtxis);
 
 			load(c);
 

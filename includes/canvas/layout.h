@@ -120,3 +120,40 @@ struct CanvasContext
 
 	Select select;
 };
+
+// -----------------------------------------------------------------------------
+// Util
+// -----------------------------------------------------------------------------
+
+/**
+ * @brief Quick erase array at index
+ *
+ * @param i index to delete
+ * @param arr target vector
+ * @param arrs other vectors to target
+ */
+template<typename U, typename... T>
+inline void erase(size_t i, U &arr, T &...arrs)
+{
+	assert(((arr.size() == arrs.size()) && ...) && "Arrays not same length.");
+	assert(!(arr.empty() || (arrs.empty() || ...)) && "One of arrays empty.");
+
+	std::swap(arr[i], arr.back());
+	(std::swap(arrs[i], arrs.back()), ...);
+
+	arr.erase(arr.end() - 1);
+	(arrs.erase(arrs.end() - 1), ...);
+}
+
+/**
+ * @brief Clear vectors
+ *
+ * @param arr array to clear
+ * @param arrs other arrays to clear
+ */
+template<typename U, typename... T>
+inline void clear(U &arr, T &...arrs)
+{
+	arr.clear();
+	(arrs.clear(), ...);
+}

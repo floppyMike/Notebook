@@ -44,41 +44,39 @@ inline auto get_line_dim(const Renderer &r, const ScreenLine &sl, const ScreenLi
 }
 
 /**
- * @brief Quick erase texture at index
+ * @brief Render joint between strokes
  *
- * @param c Using texture and lines array
- * @param i index to delete
+ * @param r Get draw functions
+ * @param st Get texture to draw to
+ * @param sli Get radius information
+ * @param p Point to draw the joint to
  */
-template<typename U, typename... T>
-inline void erase(size_t i, U &arr, T &...arrs)
-{
-	assert(((arr.size() == arrs.size()) && ...) && "Textures and lines not same size.");
-	assert(!(arr.empty() || (arrs.empty() || ...)) && "Textures or lines empty.");
-
-	std::swap(arr[i], arr.back());
-	(std::swap(arrs[i], arrs.back()), ...);
-
-	arr.erase(arr.end() - 1);
-	(arrs.erase(arrs.end() - 1), ...);
-}
-
-inline void render_con(Renderer &r, ScreenTexture &st, const ScreenLineInfo &sli, mth::Point<int> p)
+inline void render_joint(Renderer &r, ScreenTexture &st, const ScreenLineInfo &sli, mth::Point<int> p)
 {
 	r.set_render_target(st.data);
 
 	r.set_draw_color(sli.color);
-	r.draw_conn_stroke(p, sli.radius);
+	r.draw_joint_stroke(p, sli.radius);
 
 	r.render_target();
 }
 
-inline void render_inter(Renderer &r, ScreenTexture &st, const ScreenLineInfo &sli, mth::Point<int> from,
+/**
+ * @brief Render a stroke connection between 2 strokes
+ *
+ * @param r Get draw functions
+ * @param st Get texture to draw to
+ * @param sli Get radius information
+ * @param from Point to draw from
+ * @param to Point to draw to
+ */
+inline void render_conn(Renderer &r, ScreenTexture &st, const ScreenLineInfo &sli, mth::Point<int> from,
 						 mth::Point<int> to)
 {
 	r.set_render_target(st.data);
 
 	r.set_draw_color(sli.color);
-	r.draw_inter_stroke(from, to, sli.radius);
+	r.draw_con_stroke(from, to, sli.radius);
 
 	r.render_target();
 }
@@ -99,7 +97,7 @@ inline auto start_stroke(const Window &w, Renderer &r, const ScreenLineInfo &sli
 	ScreenTexture st = { .dim = { 0, 0, w_size.w, w_size.h }, .data = r.create_texture(w_size.w, w_size.h) };
 	ScreenLine	  sl = { .points = { { mp.x, mp.y } } };
 
-	render_con(r, st, sli, mp);
+	render_joint(r, st, sli, mp);
 
 	return { std::move(st), std::move(sl) };
 }
@@ -114,7 +112,7 @@ inline auto start_stroke(const Window &w, Renderer &r, const ScreenLineInfo &sli
 inline void continue_stroke(const Window &w, Renderer &r, ScreenTexture &st, ScreenLine &sl, const ScreenLineInfo &sli)
 {
 	const auto mp = w.get_mousepos();
-	render_inter(r, st, sli, sl.points.back(), mp);
+	render_conn(r, st, sli, sl.points.back(), mp);
 	sl.points.push_back(mp);
 }
 
@@ -124,11 +122,13 @@ inline void continue_stroke(const Window &w, Renderer &r, ScreenTexture &st, Scr
  * @param r Texture manipulation
  * @param cam Calculating world
  * @param c Storing texture and line
+ *
+ * @return Finished stroke
  */
 inline auto finalize_stroke(const Window &w, Renderer &r, ScreenTexture &st, ScreenLine &sl, const ScreenLineInfo &sli)
 	-> ScreenTexture
 {
-	render_con(r, st, sli, sl.points.back());
+	render_joint(r, st, sli, sl.points.back());
 
 	const auto line_dim = get_line_dim(r, sl, sli);
 	auto	   tex		= r.crop_texture(st.data, line_dim);
@@ -136,6 +136,16 @@ inline auto finalize_stroke(const Window &w, Renderer &r, ScreenTexture &st, Scr
 	return { .dim = line_dim, .data = std::move(tex) };
 }
 
+/**
+ * @brief Transform screen line to a world line
+ *
+ * @param cam Get the relativistic position of the screen
+ * @param st Screen size & texture
+ * @param sl Screen lines of stroke
+ * @param sli Screen radius, scale & color
+ *
+ * @return World line combo
+ */
 inline auto transform_target_line(const sdl::Camera2D &cam, ScreenTexture &st, ScreenLine &sl,
 								  const ScreenLineInfo &sli) -> std::tuple<WorldTexture, WorldLine, WorldLineInfo>
 {
@@ -150,7 +160,13 @@ inline auto transform_target_line(const sdl::Camera2D &cam, ScreenTexture &st, S
 	return { std::move(wt), std::move(wl), wli };
 }
 
-inline auto clear_target_line(ScreenTexture &st, ScreenLine &sl)
+/**
+ * @brief Clear info from screen line
+ *
+ * @param st Screen texture
+ * @param sl Screen line
+ */
+inline void clear_target_line(ScreenTexture &st, ScreenLine &sl)
 {
 	st.data.reset();
 	sl.points.clear();
@@ -220,33 +236,21 @@ inline void redraw(Renderer &r, WorldTextureDB &wts, const WorldLineDB &wls, con
 
 		auto prev_pos = cam.world_screen(wl.points.front());
 
-		r.draw_conn_stroke(prev_pos, rad);
+		r.draw_joint_stroke(prev_pos, rad);
 
 		for (auto p = wl.points.begin() + 1; p != wl.points.end(); ++p)
 		{
 			const auto next_pos = cam.world_screen(*p);
-			r.draw_inter_stroke(prev_pos, next_pos, rad);
+			r.draw_con_stroke(prev_pos, next_pos, rad);
 			prev_pos = next_pos;
 		}
 
 		if (wl.points.size() > 1)
-			r.draw_conn_stroke(prev_pos, rad);
+			r.draw_joint_stroke(prev_pos, rad);
 
 		wt.data = std::move(t);
 		r.render_target();
 	}
-}
-
-/**
- * @brief Clear all data from canvas
- *
- * @param c Access the data to be cleared
- */
-inline void clear_canvas(WorldTextureDB &wts, WorldLineDB &wls, WorldLineInfoDB &wlis)
-{
-	wts.clear();
-	wls.clear();
-	wlis.clear();
 }
 
 inline void change_radius(Renderer &r, ScreenLineInfo &sli, int rad)
