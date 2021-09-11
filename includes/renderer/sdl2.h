@@ -162,5 +162,4 @@ public:
 
 private:
 	RendererContext m_con;
-	struct RendererContext;
 };
