@@ -79,7 +79,7 @@ enum class CanvasType
 
 struct Select
 {
-	WorldTexture *wts;
+	WorldTexture *wts = nullptr;
 	CanvasType	  type;
 };
 
