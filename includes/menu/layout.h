@@ -22,10 +22,17 @@ struct Icon
 	int			   id;
 };
 
+struct Bar
+{
+	mth::Rect<int> dim;
+	TextureData	   data;
+};
+
+using IconDB = std::vector<Icon>;
+
 struct BarContext
 {
 	TextureData icon_map;
-
-	mth::Point<int>	  bar_loc;
-	std::vector<Icon> icons;
+	Bar			bar;
+	IconDB		icons;
 };

@@ -1,21 +1,9 @@
 #pragma once
 
-#include "menu/layout.h"
 #include "window.h"
 #include "renderer.h"
-
-constexpr auto bar_dim(int icon_n) -> mth::Dim<int>
-{
-	return { icon_n * (ICON_SIZE + SEPERATION) + SEPERATION, 2 * SEPERATION + ICON_SIZE };
-}
-
-inline auto rescale(const Window &w, size_t icon_n) -> mth::Point<int>
-{
-	const auto win = w.get_windowsize();
-	const auto bar = bar_dim(icon_n);
-
-	return { (win.w - bar.w) / 2, win.h - bar.h };
-}
+#include "menu/layout.h"
+#include "menu/bar.h"
 
 class Menu
 {
@@ -23,25 +11,24 @@ public:
 	Menu(const Window &w, Renderer &r)
 	{
 		c.icon_map = r.load_bmp("res/Icons.bmp");
-		c.icons	   = { { .dim = { 0, 0, 32, 32 }, .id = ID_DRAW },
-					   { .dim = { 32, 0, 32, 32 }, .id = ID_SELECT },
-					   { .dim = { 64, 0, 32, 32 }, .id = ID_TEXT } };
+		c.icons	   = {
+			   { .id = ID_DRAW },
+			   { .id = ID_SELECT },
+			   { .id = ID_TEXT },
+		};
 
-		c.bar_loc = rescale(w, c.icons.size());
+		c.bar = gen_bar(r, c.icon_map, c.icons);
+
+		const auto p = mid_bottom(w, c.bar.dim.dim());
+		c.bar.dim.pos(p);
 	}
 
 	void draw(const Window &w, Renderer &r)
 	{
-		c.bar_loc = rescale(w, c.icons.size());
+		const auto p = mid_bottom(w, c.bar.dim.dim());
+		c.bar.dim.pos(p);
 
-		for (int i = 0; i < c.icons.size(); ++i)
-		{
-			mth::Rect<int> s = { i * ICON_SIZE, 0, ICON_SIZE, ICON_SIZE };
-			mth::Rect<int> d = { c.bar_loc.x + SEPERATION + i * (ICON_SIZE + SEPERATION), c.bar_loc.y + SEPERATION,
-								 ICON_SIZE, ICON_SIZE };
-
-			r.draw_frame(c.icon_map, s, d);
-		}
+		r.draw_texture(c.bar.data, c.bar.dim);
 	}
 
 	void event(const SDL_Event &e)
