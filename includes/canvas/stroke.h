@@ -275,9 +275,9 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 		case SDLK_r: c.ssli.color = sdl::RED; break;
 		case SDLK_b: c.ssli.color = sdl::BLACK; break;
 
-		case SDLK_v: c.status = SELECTING; break;
+		case SDLK_v: c.status = CanvasStatus::SELECTING; break;
 		case SDLK_y:
-			c.status = TYPING;
+			c.status = CanvasStatus::TYPING;
 
 			const auto wp = c.cam.screen_world(w.get_mousepos());
 

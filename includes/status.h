@@ -1,6 +1,6 @@
 #pragma once
 
-enum Status
+enum class Status
 {
 	PAINTING,
 	TYPING,

@@ -52,7 +52,7 @@ inline void handle_typing(const SDL_Event &e, const KeyEvent &ke, Renderer &r, C
 		switch (e.key.keysym.sym)
 		{
 		case SDLK_ESCAPE:
-			c.status = PAINTING;
+			c.status = CanvasStatus::PAINTING;
 			SDL_StopTextInput();
 			break;
 

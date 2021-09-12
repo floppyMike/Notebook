@@ -71,7 +71,7 @@ struct TextFont
 // Selection
 // -----------------------------------------------------------------------------
 
-enum CanvasType
+enum class CanvasType
 {
 	STROKE,
 	TEXT,
@@ -100,7 +100,7 @@ using WorldTextInfoDB = std::vector<WorldTextInfo>;
 
 struct CanvasContext
 {
-	CanvasStatus status = PAINTING;
+	CanvasStatus status = CanvasStatus::PAINTING;
 
 	sdl::Camera2D cam;
 

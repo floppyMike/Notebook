@@ -26,7 +26,7 @@ inline void handle_selecting(const SDL_Event &e, const KeyEvent &ke, const Windo
 		switch (e.key.keysym.sym)
 		{
 		case SDLK_v:
-			c.status	 = PAINTING;
+			c.status	 = CanvasStatus::PAINTING;
 			c.select.wts = nullptr;
 			break;
 		}
@@ -41,8 +41,8 @@ inline void handle_selecting(const SDL_Event &e, const KeyEvent &ke, const Windo
 			WorldTexture *selected;
 			CanvasType	  ct;
 
-			if ((ct = STROKE, selected = start_selecting(r, c.swts, wp)) == nullptr)
-				ct = TEXT, selected = start_selecting(r, c.txwts, wp);
+			if ((ct = CanvasType::STROKE, selected = start_selecting(r, c.swts, wp)) == nullptr)
+				ct = CanvasType::TEXT, selected = start_selecting(r, c.txwts, wp);
 
 			c.select = { .wts = selected, .type = ct };
 			r.refresh();
