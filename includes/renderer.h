@@ -26,10 +26,12 @@ concept is_renderer = requires(T t)
 	{ t.create_text(FontData(), "") } -> std::same_as<TextureData>;
 
 	t.draw_texture(TextureData(), mth::Rect<int>());
+	t.draw_frame(TextureData(), mth::Rect<int>(), mth::Rect<int>());
 	t.draw_rect(mth::Rect<int>());
 	t.draw_line(mth::Point<int>(), mth::Point<int>());
 
 	{ t.crop_texture(TextureData(), mth::Rect<int>()) } -> std::same_as<TextureData>;
+	{ t.load_bmp("") } -> std::same_as<TextureData>;
 	t.refresh();
 
 	t.render(nothing);
