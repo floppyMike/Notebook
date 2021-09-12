@@ -1,11 +1,9 @@
 #pragma once
 
 #include <SDL.h>
-#include <CustomLibrary/SDL/All.h>
-#include <CustomLibrary/Error.h>
-#include <CustomLibrary/Collider.h>
 
 #include "canvas.h"
+#include "menu.h"
 #include "event.h"
 
 #include "renderer.h"
@@ -21,6 +19,7 @@ public:
 		, m_r(m_w.create_renderer())
 		, m_ek()
 		, m_canvas(m_r)
+		, m_menu(m_w, m_r)
 	{
 	}
 
@@ -65,7 +64,12 @@ public:
 
 	void render()
 	{
-		m_r.render([this] { m_canvas.draw(m_r); });
+		m_r.render(
+			[this]
+			{
+				m_canvas.draw(m_r);
+				m_menu.draw(m_w, m_r);
+			});
 	}
 
 private:
@@ -74,5 +78,5 @@ private:
 	KeyEvent m_ek;
 
 	Canvas m_canvas;
+	Menu   m_menu;
 };
-

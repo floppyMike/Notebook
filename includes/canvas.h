@@ -1,7 +1,5 @@
 #pragma once
 
-#include <CustomLibrary/SDL/All.h>
-
 #include "renderer.h"
 
 #include "canvas/layout.h"
@@ -88,10 +86,10 @@ public:
 
 		switch (m_con.status)
 		{
-		case PAINTING: handle_paint(e, ke, w, r, m_con); break;
-		case SELECTING: handle_selecting(e, ke, w, r, m_con); break;
+			case CanvasStatus::PAINTING: handle_paint(e, ke, w, r, m_con); break;
+			case CanvasStatus::SELECTING: handle_selecting(e, ke, w, r, m_con); break;
 
-		case TYPING: handle_typing(e, ke, r, m_con); return;
+			case CanvasStatus::TYPING: handle_typing(e, ke, r, m_con); return;
 		};
 
 		handle_save(e, ke, w, r, m_con);
