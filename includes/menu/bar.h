@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CustomLibrary/IO.h>
+#include <CustomLibrary/Collider.h>
 
 #include "window.h"
 #include "renderer.h"
@@ -36,4 +37,13 @@ inline auto gen_bar(Renderer &r, const TextureData &icon_map, IconDB &icons) -> 
 	r.render_target();
 
 	return { .dim = { 0, 0, bar.w, bar.h }, .data = std::move(t) };
+}
+
+inline auto intersect_bar(mth::Point<int> rel, const IconDB &icons, mth::Point<int> p)
+{
+	return std::find_if(
+		icons.begin(), icons.end(),
+		[p, rel](const Icon &i) {
+			return mth::collision(p, mth::Rect<int>{ i.dim.x + rel.x, i.dim.y + rel.y, i.dim.w, i.dim.h });
+		});
 }

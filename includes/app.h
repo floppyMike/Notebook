@@ -55,7 +55,7 @@ public:
 		}
 
 		// Delegate to components
-		m_canvas.event(e, m_ek, m_w, m_r);
+		m_menu.event(e, m_w) && m_canvas.event(e, m_ek, m_w, m_r);
 	}
 
 	void update()
