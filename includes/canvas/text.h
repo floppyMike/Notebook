@@ -42,54 +42,10 @@ inline void remove_character(WorldTextInfo &stxi)
 	stxi.str.pop_back();
 }
 
-// ------------------------------------------------
-
-inline void handle_typing(const SDL_Event &e, const KeyEvent &ke, Renderer &r, CanvasContext &c)
+inline auto start_typing(mth::Point<float> wp, float scale) -> std::pair<WorldTextInfo, WorldTexture>
 {
-	switch (e.type)
-	{
-	case SDL_KEYDOWN:
-		switch (e.key.keysym.sym)
-		{
-		case SDLK_ESCAPE:
-			c.status = CanvasStatus::PAINTING;
-			SDL_StopTextInput();
-			break;
+	WorldTextInfo wtxi = { .str = "", .scale = scale };
+	WorldTexture  wtx  = { .dim = { wp.x, wp.y, 0, 0 }, .data = {} };
 
-		case SDLK_BACKSPACE:
-			remove_character(c.txwtxis[c.txe]);
-			regen_text(r, c.txf, c.txwts[c.txe], c.txwtxis[c.txe]);
-
-			r.refresh();
-
-			break;
-
-		case SDLK_RETURN:
-			add_character('\n', c.txwtxis[c.txe]);
-			regen_text(r, c.txf, c.txwts[c.txe], c.txwtxis[c.txe]);
-
-			r.refresh();
-
-			break;
-		}
-
-		break;
-
-	case SDL_TEXTINPUT:
-		add_character(e.text.text[0], c.txwtxis[c.txe]);
-		regen_text(r, c.txf, c.txwts[c.txe], c.txwtxis[c.txe]);
-
-		r.refresh();
-
-		break;
-	}
-}
-
-inline void draw_texts(const Renderer &r, CanvasContext &c)
-{
-	for (const auto &t : c.txwts)
-	{
-		const auto world = c.cam.world_screen(t.dim);
-		r.draw_texture(t.data, world);
-	}
+	return { std::move(wtxi), std::move(wtx) };
 }
