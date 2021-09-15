@@ -2,8 +2,6 @@
 
 #include "renderer/sdl2.h"
 
-void nothing();
-
 // clang-format off
 template<typename T>
 concept is_renderer = requires(T t)
@@ -34,7 +32,7 @@ concept is_renderer = requires(T t)
 	{ t.load_bmp("") } -> std::same_as<TextureData>;
 	t.refresh();
 
-	t.render(nothing);
+	t.render((void (*)())nullptr);
 };
 // clang-format on
 
