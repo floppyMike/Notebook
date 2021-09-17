@@ -56,8 +56,11 @@ public:
 					SDL_Event event = sdl::create_event(e.button.windowID, c.hover->id);
 					SDL_PushEvent(&event);
 
-					c.bar = gen_bar(r, c.icon_map, c.icons, c.hover);
-					r.refresh();
+					if (c.hover->id != EVENT_SAVE && c.hover->id != EVENT_LOAD)
+					{
+						c.bar = gen_bar(r, c.icon_map, c.icons, c.hover);
+						r.refresh();
+					}
 
 					return false;
 				}
