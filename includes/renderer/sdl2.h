@@ -32,7 +32,7 @@ inline auto translate_circle(const RendererContext &c, mth::Point<int> m) -> std
 class Renderer
 {
 public:
-	explicit Renderer(SDL_Window *win)
+	void init(SDL_Window *win)
 	{
 		m_con.r.reset(SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE));
 
@@ -52,7 +52,7 @@ public:
 		SDL_SetRenderTarget(m_con.r.get(), t.get());
 	}
 
-	auto get_texture_size(const TextureData &t)
+	auto get_texture_size(const TextureData &t) const
 	{
 		mth::Dim<int> d;
 		SDL_QueryTexture(t.get(), nullptr, nullptr, &d.w, &d.h);
@@ -104,31 +104,43 @@ public:
 
 	auto create_text(const FontData &f, const char *text) const
 	{
-		auto *s = TTF_RenderText_Blended_Wrapped(f.get(), text, sdl::BLACK, 600);
+		sdl::Surface s(TTF_RenderText_Blended_Wrapped(f.get(), text, sdl::BLACK, 600));
 
 		if (s == nullptr)
 			throw std::runtime_error(TTF_GetError());
 
-		auto t = TextureData(SDL_CreateTextureFromSurface(m_con.r.get(), s));
-
-		SDL_FreeSurface(s);
-
-		return t;
+		return TextureData(SDL_CreateTextureFromSurface(m_con.r.get(), s.get()));
 	}
 
-	auto crop_texture(const TextureData &t, const mth::Rect<int> &r) const
+	auto load_bmp(const char *path) -> TextureData
+	{
+		sdl::Surface s(SDL_LoadBMP(path));
+		return TextureData(SDL_CreateTextureFromSurface(m_con.r.get(), s.get()));
+	}
+
+	auto crop_texture(const TextureData &t, mth::Rect<int> r) const
 	{
 		return sdl::crop(m_con.r.get(), t, r);
 	}
 
-	void draw_texture(const TextureData &t, const mth::Rect<int> &r) const
+	void draw_texture(const TextureData &t, mth::Rect<int> r) const
 	{
 		SDL_RenderCopy(m_con.r.get(), t.get(), nullptr, &sdl::to_rect(r));
+	}
+
+	void draw_frame(const TextureData &t, mth::Rect<int> source, mth::Rect<int> dest) const
+	{
+		SDL_RenderCopy(m_con.r.get(), t.get(), &sdl::to_rect(source), &sdl::to_rect(dest));
 	}
 
 	void draw_rect(mth::Rect<int> r) const
 	{
 		SDL_RenderDrawRect(m_con.r.get(), &sdl::to_rect(r));
+	}
+
+	void draw_rectfilled(mth::Rect<int> r) const
+	{
+		SDL_RenderFillRect(m_con.r.get(), &sdl::to_rect(r));
 	}
 
 	void draw_line(mth::Point<int> start, mth::Point<int> end) const

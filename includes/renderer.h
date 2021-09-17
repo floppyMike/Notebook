@@ -2,14 +2,10 @@
 
 #include "renderer/sdl2.h"
 
-void nothing();
-
 // clang-format off
 template<typename T>
 concept is_renderer = requires(T t)
 {
-	T((SDL_Window *)nullptr);
-
 	t.set_draw_color(SDL_Color{});
 	t.set_render_target(TextureData());
 	t.set_stroke_radius(int());
@@ -26,13 +22,16 @@ concept is_renderer = requires(T t)
 	{ t.create_text(FontData(), "") } -> std::same_as<TextureData>;
 
 	t.draw_texture(TextureData(), mth::Rect<int>());
+	t.draw_frame(TextureData(), mth::Rect<int>(), mth::Rect<int>());
 	t.draw_rect(mth::Rect<int>());
+	t.draw_rectfilled(mth::Rect<int>());
 	t.draw_line(mth::Point<int>(), mth::Point<int>());
 
 	{ t.crop_texture(TextureData(), mth::Rect<int>()) } -> std::same_as<TextureData>;
+	{ t.load_bmp("") } -> std::same_as<TextureData>;
 	t.refresh();
 
-	t.render(nothing);
+	t.render((void (*)())nullptr);
 };
 // clang-format on
 

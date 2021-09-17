@@ -1,11 +1,9 @@
 #pragma once
 
 #include <SDL.h>
-#include <CustomLibrary/SDL/All.h>
-#include <CustomLibrary/Error.h>
-#include <CustomLibrary/Collider.h>
 
 #include "canvas.h"
+#include "menu.h"
 #include "event.h"
 
 #include "renderer.h"
@@ -17,11 +15,12 @@ class App
 {
 public:
 	App()
-		: m_w()
-		, m_r(m_w.create_renderer())
-		, m_ek()
-		, m_canvas(m_r)
 	{
+		m_w.init();
+		m_r = m_w.create_renderer();
+
+		m_canvas.init(m_r);
+		m_menu.init(m_w, m_r);
 	}
 
 	void pre_pass()
@@ -55,8 +54,7 @@ public:
 		case SDL_WINDOWEVENT: m_r.refresh(); break;
 		}
 
-		// Delegate to components
-		m_canvas.event(e, m_ek, m_w, m_r);
+		m_menu.event(e, m_w, m_r) && m_canvas.event(e, m_ek, m_w, m_r);
 	}
 
 	void update()
@@ -65,7 +63,12 @@ public:
 
 	void render()
 	{
-		m_r.render([this] { m_canvas.draw(m_r); });
+		m_r.render(
+			[this]
+			{
+				m_canvas.draw(m_r);
+				m_menu.draw(m_w, m_r);
+			});
 	}
 
 private:
@@ -74,5 +77,5 @@ private:
 	KeyEvent m_ek;
 
 	Canvas m_canvas;
+	Menu   m_menu;
 };
-

@@ -1,6 +1,6 @@
 #pragma once
 
-enum CanvasStatus
+enum class CanvasStatus
 {
 	PAINTING,
 	TYPING,

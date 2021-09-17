@@ -71,7 +71,7 @@ struct TextFont
 // Selection
 // -----------------------------------------------------------------------------
 
-enum CanvasType
+enum class CanvasType
 {
 	STROKE,
 	TEXT,
@@ -79,8 +79,18 @@ enum CanvasType
 
 struct Select
 {
-	WorldTexture *wts;
+	WorldTexture *wts = nullptr;
 	CanvasType	  type;
+};
+
+// -----------------------------------------------------------------------------
+// Debug
+// -----------------------------------------------------------------------------
+
+struct CanvasDebug
+{
+	FontData font;
+	TextureData mouse;
 };
 
 // -----------------------------------------------------------------------------
@@ -100,7 +110,7 @@ using WorldTextInfoDB = std::vector<WorldTextInfo>;
 
 struct CanvasContext
 {
-	CanvasStatus status = PAINTING;
+	CanvasStatus status = CanvasStatus::PAINTING;
 
 	sdl::Camera2D cam;
 
@@ -119,6 +129,10 @@ struct CanvasContext
 	TextFont txf;
 
 	Select select;
+
+#ifndef NDEBUG
+	CanvasDebug debug;
+#endif
 };
 
 // -----------------------------------------------------------------------------
