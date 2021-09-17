@@ -14,7 +14,7 @@ struct WindowContext
 class Window
 {
 public:
-	Window()
+	void init()
 	{
 		m_con.win.reset(SDL_CreateWindow("Notetaker", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480,
 										 SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE));
@@ -25,7 +25,9 @@ public:
 
 	auto create_renderer() const -> Renderer
 	{
-		return Renderer(m_con.win.get());
+		Renderer r;
+		r.init(m_con.win.get());
+		return r;
 	}
 
 	auto get_windowsize() const -> mth::Dim<int>

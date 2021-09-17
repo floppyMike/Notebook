@@ -32,7 +32,7 @@ inline auto translate_circle(const RendererContext &c, mth::Point<int> m) -> std
 class Renderer
 {
 public:
-	explicit Renderer(SDL_Window *win)
+	void init(SDL_Window *win)
 	{
 		m_con.r.reset(SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE));
 
@@ -52,7 +52,7 @@ public:
 		SDL_SetRenderTarget(m_con.r.get(), t.get());
 	}
 
-	auto get_texture_size(const TextureData &t)
+	auto get_texture_size(const TextureData &t) const
 	{
 		mth::Dim<int> d;
 		SDL_QueryTexture(t.get(), nullptr, nullptr, &d.w, &d.h);
@@ -136,6 +136,11 @@ public:
 	void draw_rect(mth::Rect<int> r) const
 	{
 		SDL_RenderDrawRect(m_con.r.get(), &sdl::to_rect(r));
+	}
+
+	void draw_rectfilled(mth::Rect<int> r) const
+	{
+		SDL_RenderFillRect(m_con.r.get(), &sdl::to_rect(r));
 	}
 
 	void draw_line(mth::Point<int> start, mth::Point<int> end) const

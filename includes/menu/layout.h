@@ -38,4 +38,6 @@ struct BarContext
 	TextureData icon_map;
 	Bar			bar;
 	IconDB		icons;
+
+	const Icon *hover = nullptr;
 };

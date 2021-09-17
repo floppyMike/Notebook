@@ -18,7 +18,7 @@ inline auto mid_bottom(const Window &w, mth::Dim<int> d) -> mth::Point<int>
 	return { (win.w - d.w) / 2, win.h - d.h };
 }
 
-inline auto gen_bar(Renderer &r, const TextureData &icon_map, IconDB &icons) -> Bar
+inline auto gen_bar(Renderer &r, const TextureData &icon_map, IconDB &icons, const Icon *h = nullptr) -> Bar
 {
 	const auto bar = bar_size(icons.size());
 	auto	   t   = r.create_texture(bar.w, bar.h);
@@ -32,6 +32,12 @@ inline auto gen_bar(Renderer &r, const TextureData &icon_map, IconDB &icons) -> 
 
 		r.draw_frame(icon_map, s, d);
 		icons[i].dim = d;
+	}
+
+	if (h != nullptr)
+	{
+		r.set_draw_color(sdl::GREEN);
+		r.draw_rect(h->dim);
 	}
 
 	r.render_target();

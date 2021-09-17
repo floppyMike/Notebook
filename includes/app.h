@@ -15,12 +15,12 @@ class App
 {
 public:
 	App()
-		: m_w()
-		, m_r(m_w.create_renderer())
-		, m_ek()
-		, m_canvas(m_r)
-		, m_menu(m_w, m_r)
 	{
+		m_w.init();
+		m_r = m_w.create_renderer();
+
+		m_canvas.init(m_r);
+		m_menu.init(m_w, m_r);
 	}
 
 	void pre_pass()
@@ -54,8 +54,7 @@ public:
 		case SDL_WINDOWEVENT: m_r.refresh(); break;
 		}
 
-		// Delegate to components
-		m_menu.event(e, m_w) && m_canvas.event(e, m_ek, m_w, m_r);
+		m_menu.event(e, m_w, m_r) && m_canvas.event(e, m_ek, m_w, m_r);
 	}
 
 	void update()
