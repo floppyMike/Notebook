@@ -8,6 +8,7 @@
 #include "canvas/save.h"
 #include "canvas/text.h"
 #include "canvas/box.h"
+#include "canvas/debug.h"
 
 using namespace ctl;
 
@@ -315,7 +316,7 @@ inline void draw_selection(const Renderer &r, CanvasContext &c)
 class Canvas
 {
 public:
-	Canvas(Renderer &r)
+	void init(Renderer &r)
 	{
 		r.set_stroke_radius(c.ssli.radius);
 #ifdef _WIN32
@@ -330,6 +331,8 @@ public:
 		draw_strokes(r, c);
 		draw_texts(r, c);
 		draw_selection(r, c);
+
+		debug_draw(r, c);
 	}
 
 	bool event(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r)
@@ -342,6 +345,8 @@ public:
 		case CanvasStatus::SELECTING: handle_selecting(e, ke, w, r, c); break;
 		case CanvasStatus::TYPING: handle_typing(e, ke, w, r, c); break;
 		};
+
+		debug_event(e, r, c);
 
 		return true;
 	}
