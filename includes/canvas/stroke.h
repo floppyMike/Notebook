@@ -155,7 +155,7 @@ inline auto transform_target_line(const sdl::Camera2D &cam, ScreenTexture &st, S
 	std::transform(sl.points.begin(), sl.points.end(), wl.points.begin(),
 				   [&cam, &wt](mth::Point<int> p) { return cam.screen_world(p) - wt.dim.pos(); });
 
-	WorldLineInfo wli = { .radius = sli.radius * cam.scale, .scale = cam.scale, .color = sli.color };
+	WorldLineInfo wli = { .radius = sli.radius / cam.scale, .scale = cam.scale, .color = sli.color };
 
 	return { std::move(wt), std::move(wl), wli };
 }
@@ -196,8 +196,8 @@ inline auto find_line_intersections(const WorldTextureDB &wts, const WorldLineDB
 													 [offset = wts[i].dim.pos(), &wlis, i, p](mth::Point<float> l)
 													 {
 														 const mth::Rect<float> box = { l.x + offset.x, l.y + offset.y,
-																						wlis[i].radius * 2,
-																						wlis[i].radius * 2 };
+																						wlis[i].radius * 4,
+																						wlis[i].radius * 4 };
 														 return mth::collision(p, box);
 													 });
 							 }),

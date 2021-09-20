@@ -117,12 +117,15 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 		}
 
 		else if (ke.test(KeyEventMap::MOUSE_RIGHT))
-			for (size_t i : find_line_intersections(c.swts, c.swls, c.swlis,
-													c.cam.screen_world(mth::Point<int>{ e.motion.x, e.motion.y })))
+		{
+			const auto wp = c.cam.screen_world(mth::Point<int>{ e.motion.x, e.motion.y });
+
+			for (size_t i : find_line_intersections(c.swts, c.swls, c.swlis, wp))
 			{
 				erase(i, c.swts, c.swls, c.swlis);
 				r.refresh();
 			}
+		}
 
 		break;
 
