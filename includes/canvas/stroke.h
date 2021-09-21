@@ -185,7 +185,7 @@ inline auto find_line_intersections(const WorldTextureDB &wts, const WorldLineDB
 {
 	std::vector<size_t> idx;
 
-	for (int i = wts.size() - 1; i >= 0; --i)
+	for (size_t i = 0; i < wts.size(); ++i)
 		if (mth::collision(p, wts[i].dim))
 			idx.emplace_back(i);
 
