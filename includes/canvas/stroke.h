@@ -225,7 +225,7 @@ inline void redraw(Renderer &r, WorldTextureDB &wts, const WorldLineDB &wls, con
 		const auto t_size = cam.world_screen(mth::Dim<float>{ wt.dim.w, wt.dim.h });
 		auto	   t	  = r.create_texture(t_size.w, t_size.h);
 
-		const auto rad = std::lrint(wli.radius / wli.scale);
+		const auto rad = std::lrint(wli.radius * wli.scale);
 
 		if (rad < 1)
 			throw std::runtime_error("Stroke radius is under 1");
