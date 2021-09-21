@@ -323,7 +323,7 @@ public:
 	{
 		r.set_stroke_radius(c.ssli.radius);
 #ifdef _WIN32
-		m_con.txf.data = r.create_font("\\Windows\\Fonts\\arial.ttf", 30);
+		c.txf.data = r.create_font("\\Windows\\Fonts\\arial.ttf", 30);
 #else
 		c.txf.data = r.create_font("/usr/share/fonts/TTF/DejaVuSans.ttf", 30);
 #endif
