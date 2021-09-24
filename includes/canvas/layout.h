@@ -89,7 +89,7 @@ struct Select
 
 struct CanvasDebug
 {
-	FontData font;
+	FontData	font;
 	TextureData mouse;
 };
 
@@ -122,7 +122,8 @@ struct CanvasContext
 	ScreenLineInfo ssli;
 	ScreenTexture  sst;
 
-	size_t			txe;
+	WorldTexture	txet;
+	WorldTextInfo	txei;
 	WorldTextureDB	txwts;
 	WorldTextInfoDB txwtxis;
 

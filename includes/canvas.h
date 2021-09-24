@@ -18,13 +18,13 @@ using namespace ctl;
 
 inline void init_painting(CanvasContext &c)
 {
-	ctl::print("Painting");
+	ctl::print("Painting\n");
 	c.status = CanvasStatus::PAINTING;
 }
 
 inline void init_typing(CanvasContext &c)
 {
-	ctl::print("Typing");
+	ctl::print("Typing\n");
 	c.status = CanvasStatus::TYPING;
 
 	SDL_StartTextInput();
@@ -33,7 +33,7 @@ inline void init_typing(CanvasContext &c)
 
 inline void init_select(CanvasContext &c)
 {
-	ctl::print("Selecting");
+	ctl::print("Selecting\n");
 	c.status = CanvasStatus::SELECTING;
 }
 
@@ -43,6 +43,7 @@ inline void deinit_painting(CanvasContext &c)
 
 inline void deinit_typing(CanvasContext &c)
 {
+	flush_text(c.txet, c.txei, c.txwts, c.txwtxis);
 	SDL_StopTextInput();
 }
 
@@ -170,14 +171,10 @@ inline void handle_typing(const SDL_Event &e, const KeyEvent &ke, const Window &
 	case SDL_MOUSEBUTTONDOWN:
 		if (e.button.button == SDL_BUTTON_LEFT)
 		{
-			const auto wp = c.cam.screen_world(w.get_mousepos());
+			flush_text(c.txet, c.txei, c.txwts, c.txwtxis);
 
-			auto [wtxi, wtx] = start_typing(wp, c.cam.scale);
-			c.txwtxis.push_back(std::move(wtxi));
-			c.txwts.push_back(std::move(wtx));
-			c.txe = c.txwts.size() - 1;
-
-			r.refresh();
+			const auto wp			 = c.cam.screen_world(w.get_mousepos());
+			std::tie(c.txei, c.txet) = start_new_text(wp, c.cam.scale);
 		}
 
 		break;
@@ -204,16 +201,18 @@ inline void handle_typing(const SDL_Event &e, const KeyEvent &ke, const Window &
 			break;
 
 		case SDLK_BACKSPACE:
-			remove_character(c.txwtxis[c.txe]);
-			regen_text(r, c.txf, c.txwts[c.txe], c.txwtxis[c.txe]);
+			if (!remove_character(c.txei))
+				c.txet = non_empty_gen(r, c.txf, c.txei, c.txet.dim.pos());
+			else
+				c.txet = { .data = nullptr };
 
 			r.refresh();
 
 			break;
 
 		case SDLK_RETURN:
-			add_character('\n', c.txwtxis[c.txe]);
-			regen_text(r, c.txf, c.txwts[c.txe], c.txwtxis[c.txe]);
+			add_character('\n', c.txei);
+			c.txet = non_empty_gen(r, c.txf, c.txei, c.txet.dim.pos());
 
 			r.refresh();
 
@@ -223,8 +222,8 @@ inline void handle_typing(const SDL_Event &e, const KeyEvent &ke, const Window &
 		break;
 
 	case SDL_TEXTINPUT:
-		add_character(e.text.text[0], c.txwtxis[c.txe]);
-		regen_text(r, c.txf, c.txwts[c.txe], c.txwtxis[c.txe]);
+		add_character(e.text.text[0], c.txei);
+		c.txet = non_empty_gen(r, c.txf, c.txei, c.txet.dim.pos());
 
 		r.refresh();
 
@@ -301,6 +300,12 @@ inline void draw_texts(const Renderer &r, CanvasContext &c)
 		const auto world = c.cam.world_screen(t.dim);
 		r.draw_texture(t.data, world);
 	}
+
+	if (c.txet.data != nullptr)
+	{
+		const auto world = c.cam.world_screen(c.txet.dim);
+		r.draw_texture(c.txet.data, world);
+	}
 }
 
 inline void draw_selection(const Renderer &r, CanvasContext &c)
@@ -322,11 +327,21 @@ public:
 	void init(Renderer &r)
 	{
 		r.set_stroke_radius(c.ssli.radius);
+
 #ifdef _WIN32
-		c.txf.data = r.create_font("\\Windows\\Fonts\\arial.ttf", 30);
+		const char *font_path = "\\Windows\\Fonts\\arial.ttf";
 #else
-		c.txf.data = r.create_font("/usr/share/fonts/TTF/DejaVuSans.ttf", 30);
+		const char *font_path = "/usr/share/fonts/TTF/DejaVuSans.ttf";
 #endif
+
+		auto f = r.create_font(font_path, 30);
+
+		if (!f)
+			throw std::runtime_error("Font file not found.");
+
+		c.txf.data = std::move(*f);
+
+		debug_init(r, c);
 	}
 
 	void draw(const Renderer &r)
