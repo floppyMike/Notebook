@@ -1,6 +1,10 @@
 #pragma once
 
+#include <array>
+#include <optional>
+
 #include <CustomLibrary/IO.h>
+#include <CustomLibrary/utility.h>
 
 #include "layout.h"
 #include "event.h"
@@ -21,8 +25,8 @@ inline void save(const CanvasContext &c)
 	static_assert(sizeof(SDL_Color) == 4, "SDL_Color must be 4 bytes long.");
 
 	pugi::xml_document doc;
-	auto			   node = doc.append_child("doc");
 
+	auto node  = doc.append_child("doc");
 	auto lines = node.append_child("line");
 
 	for (size_t i = 0; i < c.swts.size(); ++i)
@@ -71,46 +75,95 @@ inline void save(const CanvasContext &c)
 }
 
 /**
+ * @brief Load attributes with exception
+ *
+ * @param ls node to load from
+ * @param ids attributes as string array
+ *
+ * @return xml_attributes
+ */
+template<size_t n>
+auto load_attributes(const pugi::xml_node &ls, std::array<const char *, n> ids)
+	-> std::optional<std::array<pugi::xml_attribute, n>>
+{
+	std::array<pugi::xml_attribute, n> attribs;
+	std::generate(attribs.begin(), attribs.end(), [p = ids.begin(), &ls]() mutable { return ls.attribute(*p++); });
+
+	if (!std::none_of(attribs.begin(), attribs.end(), [](const auto &i) { return i.empty(); }))
+		return std::nullopt;
+
+	return attribs;
+}
+
+/**
  * @brief Load save.xml into lines info and texture dimensions
  *
  * @param c Place to load the stored information
  */
-inline void load(CanvasContext &c)
+inline auto load(CanvasContext &c) -> bool
 {
 	static_assert(sizeof(SDL_Color) == 4, "SDL_Color must be 4 bytes long.");
 
 	pugi::xml_document doc;
-	doc.load_file("save.xml");
 
-	auto node = doc.first_child().first_child();
+	auto status = doc.load_file("save.xml");
 
-	for (auto ls = node.first_child(); ls != nullptr; ls = ls.next_sibling())
+	if (status.status != pugi::status_ok) // Handle parse error
+		return true;
+
+	auto node = doc.first_child();
+
+	for (auto ls = node.child("line").first_child(); ls != nullptr; ls = ls.next_sibling())
 	{
-		const float		radius	  = ls.attribute("r").as_float();
-		const auto		color_int = ls.attribute("c").as_uint();
-		const SDL_Color color	  = *(const SDL_Color *)&color_int;
-		const float		scale	  = ls.attribute("s").as_float();
+		const auto attrib = load_attributes(ls, std::array{ "r", "c", "s", "x", "y", "w", "h" });
 
-		c.swts.push_back({ .dim = { ls.attribute("x").as_float(), ls.attribute("y").as_float(),
-									ls.attribute("w").as_float(), ls.attribute("h").as_float() } });
+		if (!attrib)
+			return true;
+
+		const auto &nodes = attrib.value();
+
+		const auto radius = nodes[0].as_float();
+		const auto color  = (SDL_Color &)ctl::unmove(nodes[1].as_uint());
+		const auto scale  = nodes[2].as_float();
 
 		std::vector<mth::Point<float>> ps;
+
 		for (auto l = ls.first_child(); l != nullptr; l = l.next_sibling())
-			ps.push_back({ l.attribute("x").as_float(), l.attribute("y").as_float() });
+		{
+			const auto attrib = load_attributes(l, std::array{ "x", "y" });
+
+			if (!attrib)
+				return true;
+
+			const auto &nodes = attrib.value();
+
+			ps.push_back({ nodes[0].as_float(), nodes[1].as_float() });
+		}
+
+		c.swts.push_back(
+			{ .dim = { nodes[3].as_float(), nodes[4].as_float(), nodes[5].as_float(), nodes[6].as_float() } });
 
 		c.swls.push_back({ std::move(ps) });
 		c.swlis.push_back({ radius, scale, color });
 	}
 
-	node = node.next_sibling();
-
-	for (auto t = node.first_child(); t != nullptr; t = t.next_sibling())
+	for (auto t = node.child("text").first_child(); t != nullptr; t = t.next_sibling())
 	{
-		const auto scale = t.attribute("s").as_float();
-		const auto text	 = t.attribute("t").as_string();
-		const auto point = mth::Point<float>{ t.attribute("x").as_float(), t.attribute("y").as_float() };
+		const auto attrib = load_attributes(t, std::array{ "s", "t", "x", "y" });
+
+		if (!attrib)
+			return true;
+
+		const auto &nodes = attrib.value();
+
+		const auto scale = nodes[0].as_float();
+		const auto text	 = nodes[1].as_string();
+
+		const auto point = mth::Point<float>{ nodes[2].as_float(), nodes[3].as_float() };
 
 		c.txwtxis.push_back({ .str = text, .scale = scale });
 		c.txwts.push_back({ .dim = { point.x, point.y, 0.F, 0.F } });
 	}
+
+	return false;
 }

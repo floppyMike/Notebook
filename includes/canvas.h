@@ -80,7 +80,11 @@ inline void handle_general(const SDL_Event &e, const KeyEvent &ke, const Window 
 	case EVENT_LOAD:
 		clear(c.swts, c.swls, c.swlis, c.txwts, c.txwtxis);
 
-		load(c);
+		if (load(c))
+		{
+			ctl::print("The save file couldn't be loaded.\n");
+			break;
+		}
 
 		redraw(r, c.swts, c.swls, c.swlis);
 		regen_texts(r, c.txf, c.txwts, c.txwtxis);
