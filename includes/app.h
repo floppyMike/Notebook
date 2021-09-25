@@ -54,7 +54,28 @@ public:
 		case SDL_WINDOWEVENT: m_r.refresh(); break;
 		}
 
-		m_menu.event(e, m_w, m_r) && m_canvas.event(e, m_ek, m_w, m_r);
+		switch (e.type)
+		{
+		case SDL_MOUSEBUTTONDOWN:
+			switch (e.button.button)
+			{
+			case SDL_BUTTON_LEFT:
+				m_canvas.handle_press_down(m_w, m_r);
+				break;
+			}
+
+			break;
+
+		case SDL_MOUSEBUTTONUP:
+			switch (e.button.button)
+			{
+			case SDL_BUTTON_LEFT:
+				m_canvas.handle_press_up(m_w, m_r);
+				break;
+			}
+
+			break;
+		}
 	}
 
 	void update()

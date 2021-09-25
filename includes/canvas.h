@@ -152,14 +152,8 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 	case SDL_MOUSEBUTTONUP:
 		if (e.button.button == SDL_BUTTON_LEFT && c.sst.data)
 		{
-			c.sst			   = finalize_stroke(w, r, c.sst, c.ssl, c.ssli);
-			auto [wt, wl, wli] = transform_target_line(c.cam, c.sst, c.ssl, c.ssli);
-
-			c.swts.push_back(std::move(wt));
-			c.swls.push_back(std::move(wl));
-			c.swlis.push_back(wli);
-
-			clear_target_line(c.sst, c.ssl);
+			c.sst			   = finalize_stroke(r, c.sst, c.ssl, c.ssli);
+			add_stroke(r, c);
 
 			r.refresh();
 		}
@@ -371,6 +365,55 @@ public:
 		debug_event(e, r, c);
 
 		return true;
+	}
+
+	void handle_doc_save()
+	{
+		save(c);
+	}
+
+	auto handle_press_down(const Window &w, Renderer &r) -> bool
+	{
+		switch (c.status)
+		{
+		case CanvasStatus::PAINTING:
+			std::tie(c.sst, c.ssl) = start_stroke(w, r, c.ssli);
+			r.refresh();
+
+			break;
+
+		case CanvasStatus::TYPING: break;
+
+		case CanvasStatus::SELECTING: break;
+		}
+
+		return true;
+	}
+
+	auto handle_press_up(const Window &w, Renderer &r) -> bool
+	{
+		switch (c.status)
+		{
+		case CanvasStatus::PAINTING:
+			if (!c.sst.data)
+				break;
+
+			c.sst = finalize_stroke(r, c.sst, c.ssl, c.ssli);
+			add_stroke(r, c);
+			r.refresh();
+
+			break;
+
+		case CanvasStatus::TYPING: break;
+
+		case CanvasStatus::SELECTING: break;
+		}
+
+		return true;
+	}
+
+	void handle_erase()
+	{
 	}
 
 private:

@@ -125,8 +125,7 @@ inline void continue_stroke(const Window &w, Renderer &r, ScreenTexture &st, Scr
  *
  * @return Finished stroke
  */
-inline auto finalize_stroke(const Window &w, Renderer &r, ScreenTexture &st, ScreenLine &sl, const ScreenLineInfo &sli)
-	-> ScreenTexture
+inline auto finalize_stroke(Renderer &r, ScreenTexture &st, ScreenLine &sl, const ScreenLineInfo &sli) -> ScreenTexture
 {
 	render_joint(r, st, sli, sl.points.back());
 
@@ -216,7 +215,7 @@ inline void redraw(Renderer &r, WorldTextureDB &wts, const WorldLineDB &wls, con
 {
 	for (size_t i = 0; i < wts.size(); ++i)
 	{
-		auto &		wt	= wts[i];
+		auto		 &wt	= wts[i];
 		const auto &wl	= wls[i];
 		const auto &wli = wlis[i];
 
@@ -258,4 +257,21 @@ inline void change_radius(Renderer &r, ScreenLineInfo &sli, int rad)
 	sli.radius = std::clamp(rad, 1, 10);
 	ctl::print("Radius: %i\n", sli.radius);
 	r.set_stroke_radius(sli.radius);
+}
+
+/**
+ * @brief Tranform stroke to a world line and store it
+ *
+ * @param r Render to texture
+ * @param c Dbs to store to
+ */
+inline void add_stroke(Renderer &r, CanvasContext &c)
+{
+	auto [wt, wl, wli] = transform_target_line(c.cam, c.sst, c.ssl, c.ssli);
+
+	c.swts.push_back(std::move(wt));
+	c.swls.push_back(std::move(wl));
+	c.swlis.push_back(wli);
+
+	clear_target_line(c.sst, c.ssl);
 }
