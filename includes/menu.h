@@ -24,7 +24,7 @@ public:
 			{ .id = EVENT_SAVE }, { .id = EVENT_LOAD },
 		};
 
-		c.bar = gen_bar(r, c.icon_map, c.icons);
+		c.bar = gen_bar(r, c.icon_map, c.icons, 0);
 
 		const auto p = mid_bottom(w, c.bar.dim.dim());
 		c.bar.dim.pos(p);
@@ -42,14 +42,11 @@ public:
 	{
 		switch (e.type)
 		{
-		case SDL_MOUSEMOTION:
-			if (mth::collision(c.bar.dim, mth::Point<int>{ e.motion.x, e.motion.y }))
-				if (const auto f = intersect_bar(c.bar.dim.pos(), c.icons, w.get_mousepos()); f != c.icons.end())
-					c.hover = &*f;
-				else
-					c.hover = nullptr;
-			else
-				c.hover = nullptr;
+		case EVENT_DRAW:
+		case EVENT_SELECT:
+		case EVENT_TYPE:
+			c.bar = gen_bar(r, c.icon_map, c.icons, e.type);
+			r.refresh();
 
 			break;
 
@@ -57,19 +54,14 @@ public:
 			switch (e.button.button)
 			{
 			case SDL_BUTTON_LEFT:
-				if (c.hover)
-				{
-					SDL_Event event = sdl::create_event(e.button.windowID, c.hover->id);
-					SDL_PushEvent(&event);
-
-					if (c.hover->id != EVENT_SAVE && c.hover->id != EVENT_LOAD)
+				if (const auto mp = sdl::mouse_position(); mth::collision(c.bar.dim, mp))
+					if (const auto f = intersect_bar(c.bar.dim.pos(), c.icons, mp); f != c.icons.end())
 					{
-						c.bar = gen_bar(r, c.icon_map, c.icons, c.hover);
-						r.refresh();
-					}
+						SDL_Event event = sdl::create_event(e.button.windowID, f->id);
+						SDL_PushEvent(&event);
 
-					return false;
-				}
+						return false;
+					}
 
 				break;
 			}

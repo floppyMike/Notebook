@@ -10,15 +10,6 @@ static constexpr auto MAX_ICON	 = 10;
 static constexpr auto ICON_SIZE	 = 32;
 static constexpr auto SEPERATION = 10;
 
-enum MenuID
-{
-	ID_DRAW,
-	ID_SELECT,
-	ID_TEXT,
-
-	ID_ALL,
-};
-
 struct Icon
 {
 	mth::Rect<int> dim;
@@ -38,6 +29,4 @@ struct BarContext
 	TextureData icon_map;
 	Bar			bar;
 	IconDB		icons;
-
-	const Icon *hover = nullptr;
 };

@@ -198,11 +198,7 @@ inline void handle_typing(const SDL_Event &e, const KeyEvent &ke, const Window &
 	case SDL_KEYDOWN:
 		switch (e.key.keysym.sym)
 		{
-		case SDLK_ESCAPE:
-			deinit_typing(c);
-			init_painting(c);
-
-			break;
+		case SDLK_ESCAPE: sdl::push_event(e.button.windowID, EVENT_DRAW); break;
 
 		case SDLK_BACKSPACE:
 			if (!remove_character(c.txei))

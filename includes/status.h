@@ -9,8 +9,8 @@ enum class Status
 enum Event
 {
 	EVENT_DRAW,
-	EVENT_SAVE,
-	EVENT_LOAD,
 	EVENT_SELECT,
 	EVENT_TYPE,
+	EVENT_SAVE,
+	EVENT_LOAD,
 };
