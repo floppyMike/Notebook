@@ -5,7 +5,9 @@
 
 inline void debug_init(Renderer &r, CanvasContext &c)
 {
+#ifndef NDEBUG
 	c.debug.mouse = r.create_text(c.txf.data, "0 0");
+#endif
 }
 
 inline void debug_event(const SDL_Event &e, Renderer &r, CanvasContext &c)
