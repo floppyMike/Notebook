@@ -12,10 +12,16 @@ class Menu
 public:
 	void init(const Window &w, Renderer &r)
 	{
-		c.icon_map = r.load_bmp("res/Icons.bmp");
-		c.icons	   = {
-			   { .id = EVENT_DRAW }, { .id = EVENT_SELECT }, { .id = EVENT_TYPE },
-			   { .id = EVENT_SAVE }, { .id = EVENT_LOAD },
+		auto bmp = r.load_bmp("res/Icons.bmp");
+
+		if (!bmp)
+			throw std::runtime_error("File res/Icons.bmp not found.");
+
+		c.icon_map = std::move(*bmp);
+
+		c.icons = {
+			{ .id = EVENT_DRAW }, { .id = EVENT_SELECT }, { .id = EVENT_TYPE },
+			{ .id = EVENT_SAVE }, { .id = EVENT_LOAD },
 		};
 
 		c.bar = gen_bar(r, c.icon_map, c.icons);

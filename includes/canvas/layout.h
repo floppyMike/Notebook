@@ -89,7 +89,7 @@ struct Select
 
 struct CanvasDebug
 {
-	FontData font;
+	FontData	font;
 	TextureData mouse;
 };
 
@@ -108,7 +108,22 @@ using WorldTextInfoDB = std::vector<WorldTextInfo>;
 // Context
 // -----------------------------------------------------------------------------
 
-struct CanvasContext
+struct ScreenStroke
+{
+	ScreenLine	   ssl;
+	ScreenLineInfo ssli;
+	ScreenTexture  sst;
+};
+
+struct EditText
+{
+	WorldTexture  txet;
+	WorldTextInfo txei;
+
+	TextFont txf;
+};
+
+struct SaveState
 {
 	CanvasStatus status = CanvasStatus::PAINTING;
 
@@ -118,16 +133,15 @@ struct CanvasContext
 	WorldLineInfoDB swlis;
 	WorldTextureDB	swts;
 
-	ScreenLine	   ssl;
-	ScreenLineInfo ssli;
-	ScreenTexture  sst;
-
-	size_t			txe;
 	WorldTextureDB	txwts;
 	WorldTextInfoDB txwtxis;
+};
 
-	TextFont txf;
-
+struct CanvasContext
+	: ScreenStroke
+	, EditText
+	, SaveState
+{
 	Select select;
 
 #ifndef NDEBUG

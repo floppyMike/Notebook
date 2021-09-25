@@ -5,6 +5,8 @@
 
 #include <CustomLibrary/SDL/All.h>
 
+#include <CustomLibrary/Error.h>
+
 using namespace ctl;
 
 using TextureData = sdl::Texture;
@@ -44,18 +46,18 @@ public:
 
 	void set_draw_color(SDL_Color col) const
 	{
-		SDL_SetRenderDrawColor(m_con.r.get(), col.r, col.g, col.b, col.a);
+		ASSERT(SDL_SetRenderDrawColor(m_con.r.get(), col.r, col.g, col.b, col.a) == 0, SDL_GetError());
 	}
 
 	void set_render_target(const TextureData &t)
 	{
-		SDL_SetRenderTarget(m_con.r.get(), t.get());
+		ASSERT(SDL_SetRenderTarget(m_con.r.get(), t.get()) == 0, SDL_GetError());
 	}
 
 	auto get_texture_size(const TextureData &t) const
 	{
 		mth::Dim<int> d;
-		SDL_QueryTexture(t.get(), nullptr, nullptr, &d.w, &d.h);
+		ASSERT(SDL_QueryTexture(t.get(), nullptr, nullptr, &d.w, &d.h) == 0, SDL_GetError());
 
 		return d;
 	}
@@ -80,15 +82,15 @@ public:
 		assert(!m_con.circle_pattern.empty() && "Circle pattern not generated yet.");
 
 		const auto buf = translate_circle(m_con, p);
-		SDL_RenderDrawPoints(m_con.r.get(), buf.data(), (int)m_con.circle_pattern.size());
+		ASSERT(SDL_RenderDrawPoints(m_con.r.get(), buf.data(), (int)m_con.circle_pattern.size()) == 0, SDL_GetError());
 	}
 
 	void draw_con_stroke(mth::Point<int> from, mth::Point<int> to, int r) const
 	{
 		for (int i = -(r - 1); i <= r - 1; ++i)
 		{
-			SDL_RenderDrawLine(m_con.r.get(), from.x, from.y + i, to.x, to.y + i);
-			SDL_RenderDrawLine(m_con.r.get(), from.x + i, from.y, to.x + i, to.y);
+			ASSERT(SDL_RenderDrawLine(m_con.r.get(), from.x, from.y + i, to.x, to.y + i) == 0, SDL_GetError());
+			ASSERT(SDL_RenderDrawLine(m_con.r.get(), from.x + i, from.y, to.x + i, to.y) == 0, SDL_GetError());
 		}
 	}
 
@@ -105,17 +107,15 @@ public:
 	auto create_text(const FontData &f, const char *text) const
 	{
 		sdl::Surface s(TTF_RenderText_Blended_Wrapped(f.get(), text, sdl::BLACK, 600));
-
-		if (s == nullptr)
-			throw std::runtime_error(TTF_GetError());
+		ASSERT(s != nullptr, TTF_GetError());
 
 		return TextureData(SDL_CreateTextureFromSurface(m_con.r.get(), s.get()));
 	}
 
-	auto load_bmp(const char *path) -> TextureData
+	auto load_bmp(const char *path) -> std::optional<TextureData>
 	{
 		sdl::Surface s(SDL_LoadBMP(path));
-		return TextureData(SDL_CreateTextureFromSurface(m_con.r.get(), s.get()));
+		return s ? std::optional(TextureData(SDL_CreateTextureFromSurface(m_con.r.get(), s.get()))) : std::nullopt;
 	}
 
 	auto crop_texture(const TextureData &t, mth::Rect<int> r) const
@@ -125,27 +125,27 @@ public:
 
 	void draw_texture(const TextureData &t, mth::Rect<int> r) const
 	{
-		SDL_RenderCopy(m_con.r.get(), t.get(), nullptr, &sdl::to_rect(r));
+		ASSERT(SDL_RenderCopy(m_con.r.get(), t.get(), nullptr, &sdl::to_rect(r)) == 0, SDL_GetError());
 	}
 
 	void draw_frame(const TextureData &t, mth::Rect<int> source, mth::Rect<int> dest) const
 	{
-		SDL_RenderCopy(m_con.r.get(), t.get(), &sdl::to_rect(source), &sdl::to_rect(dest));
+		ASSERT(SDL_RenderCopy(m_con.r.get(), t.get(), &sdl::to_rect(source), &sdl::to_rect(dest)) == 0, SDL_GetError());
 	}
 
 	void draw_rect(mth::Rect<int> r) const
 	{
-		SDL_RenderDrawRect(m_con.r.get(), &sdl::to_rect(r));
+		ASSERT(SDL_RenderDrawRect(m_con.r.get(), &sdl::to_rect(r)) == 0, SDL_GetError());
 	}
 
 	void draw_rectfilled(mth::Rect<int> r) const
 	{
-		SDL_RenderFillRect(m_con.r.get(), &sdl::to_rect(r));
+		ASSERT(SDL_RenderFillRect(m_con.r.get(), &sdl::to_rect(r)) == 0, SDL_GetError());
 	}
 
 	void draw_line(mth::Point<int> start, mth::Point<int> end) const
 	{
-		SDL_RenderDrawLine(m_con.r.get(), start.x, start.y, end.x, end.y);
+		ASSERT(SDL_RenderDrawLine(m_con.r.get(), start.x, start.y, end.x, end.y) == 0, SDL_GetError());
 	}
 
 	void refresh()

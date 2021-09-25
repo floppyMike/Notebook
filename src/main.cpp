@@ -2,7 +2,9 @@
 #include <SDL_ttf.h>
 #include <CustomLibrary/SDL/All.h>
 
+#include "CustomLibrary/IO.h"
 #include "app.h"
+
 
 auto main(int argc, char **argv) -> int
 {
@@ -16,7 +18,7 @@ auto main(int argc, char **argv) -> int
 	}
 	catch (const std::exception &e)
 	{
-		std::cerr << e.what() << '\n';
+		ctl::print("Unresolvable error: %s\n", e.what());
 	}
 
 	return 0;
