@@ -91,7 +91,7 @@ inline void render_conn(Renderer &r, ScreenTexture &st, const ScreenLineInfo &sl
 inline auto start_stroke(const Window &w, Renderer &r, const ScreenLineInfo &sli)
 	-> std::pair<ScreenTexture, ScreenLine>
 {
-	const auto mp	  = w.get_mousepos();
+	const auto mp	  = sdl::mouse_position();
 	const auto w_size = w.get_windowsize();
 
 	ScreenTexture st = { .dim = { 0, 0, w_size.w, w_size.h }, .data = r.create_texture(w_size.w, w_size.h) };
@@ -111,7 +111,7 @@ inline auto start_stroke(const Window &w, Renderer &r, const ScreenLineInfo &sli
  */
 inline void continue_stroke(const Window &w, Renderer &r, ScreenTexture &st, ScreenLine &sl, const ScreenLineInfo &sli)
 {
-	const auto mp = w.get_mousepos();
+	const auto mp = sdl::mouse_position();
 	render_conn(r, st, sli, sl.points.back(), mp);
 	sl.points.push_back(mp);
 }

@@ -70,7 +70,7 @@ inline void handle_general(const SDL_Event &e, const KeyEvent &ke, const Window 
 		break;
 
 	case SDL_MOUSEWHEEL:
-		c.cam.zoom(1.F + (float)e.wheel.y / 10.F, w.get_mousepos());
+		c.cam.zoom(1.F + (float)e.wheel.y / 10.F, sdl::mouse_position());
 		r.refresh();
 
 		break;
@@ -135,7 +135,7 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 		break;
 
 	case SDL_MOUSEWHEEL:
-		c.cam.zoom(1.F + (float)e.wheel.y / 10.F, w.get_mousepos());
+		c.cam.zoom(1.F + (float)e.wheel.y / 10.F, sdl::mouse_position());
 		r.refresh();
 
 		break;
@@ -177,7 +177,7 @@ inline void handle_typing(const SDL_Event &e, const KeyEvent &ke, const Window &
 		{
 			flush_text(c.txet, c.txei, c.txwts, c.txwtxis);
 
-			const auto wp			 = c.cam.screen_world(w.get_mousepos());
+			const auto wp			 = c.cam.screen_world(sdl::mouse_position());
 			std::tie(c.txei, c.txet) = start_new_text(wp, c.cam.scale);
 		}
 
@@ -250,7 +250,7 @@ inline void handle_selecting(const SDL_Event &e, const KeyEvent &ke, const Windo
 	case SDL_MOUSEBUTTONDOWN:
 		if (e.button.button == SDL_BUTTON_LEFT)
 		{
-			const auto wp = c.cam.screen_world(w.get_mousepos());
+			const auto wp = c.cam.screen_world(sdl::mouse_position());
 
 			WorldTexture *selected;
 			CanvasType	  ct;
