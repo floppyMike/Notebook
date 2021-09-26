@@ -13,6 +13,10 @@ add_subdirectory(extern/CustomLibrary)
 include_directories(${SDL2_INCLUDE_DIR} ${SDL2_TTF_INCLUDE_DIR} extern/pugixml)
 link_libraries(${SDL2_LIBRARY} ${SDL2_TTF_LIBRARY} CustomLibrary)
 
+if (WIN32)
+	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+endif()
+
 add_executable(${PROJECT_NAME} src/main.cpp)
 target_include_directories(${PROJECT_NAME} PRIVATE includes)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
