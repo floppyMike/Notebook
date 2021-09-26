@@ -328,12 +328,7 @@ public:
 	{
 		r.set_stroke_radius(c.ssli.radius);
 
-#ifdef _WIN32
-		const char *font_path = "\\Windows\\Fonts\\arial.ttf";
-#else
-		const char *font_path = "/usr/share/fonts/TTF/DejaVuSans.ttf";
-#endif
-
+		const char *font_path = "res/arial.ttf";
 		auto f = r.create_font(font_path, 30);
 
 		if (!f)
