@@ -75,21 +75,24 @@ inline void handle_general(const SDL_Event &e, const KeyEvent &ke, const Window 
 
 		break;
 
-	case EVENT_SAVE: save(c); break;
+	case EVENT_SAVE:
+		if (const auto filename = open_file_save(); filename)
+			save(c, filename->c_str());
+
+		break;
 
 	case EVENT_LOAD:
-		clear(c.swts, c.swls, c.swlis, c.txwts, c.txwtxis);
-
-		if (load(c))
+		if (const auto filename = open_file_load(); filename)
 		{
-			ctl::print("The save file couldn't be loaded.\n");
-			break;
+			clear(c.swts, c.swls, c.swlis, c.txwts, c.txwtxis);
+
+			CATCH_LOG(load(c, filename->c_str()));
+
+			redraw(r, c.swts, c.swls, c.swlis);
+			regen_texts(r, c.txf, c.txwts, c.txwtxis);
+
+			r.refresh();
 		}
-
-		redraw(r, c.swts, c.swls, c.swlis);
-		regen_texts(r, c.txf, c.txwts, c.txwtxis);
-
-		r.refresh();
 
 		break;
 	}
@@ -329,7 +332,7 @@ public:
 		r.set_stroke_radius(c.ssli.radius);
 
 		const char *font_path = "res/arial.ttf";
-		auto f = r.create_font(font_path, 30);
+		auto		f		  = r.create_font(font_path, 30);
 
 		if (!f)
 			throw std::runtime_error("Font file not found.");

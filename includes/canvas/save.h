@@ -8,25 +8,23 @@
 
 #include "layout.h"
 #include "event.h"
+#include "window.h"
 #include "pugixml.hpp"
 
+// -----------------------------------------------------------------------------
+// Saving
+// -----------------------------------------------------------------------------
+
 /**
- * @brief Save the canvas into save.xml using XML
- * <doc>
- *     <ls rad= col= s= x= y= w= h= >
- *         <l x= y= > ...
- *     </ls> ...
- * </doc>
+ * @brief Save the stroke component to the xml doc
  *
- * @param c Get lines info and texture dimensions
+ * @param c Get the stroke items
+ * @param node Location to store the xml data
+ *
+ * @return
  */
-inline void save(const CanvasContext &c)
+inline void save_strokes(const CanvasContext &c, pugi::xml_node &node)
 {
-	static_assert(sizeof(SDL_Color) == 4, "SDL_Color must be 4 bytes long.");
-
-	pugi::xml_document doc;
-
-	auto node  = doc.append_child("doc");
 	auto lines = node.append_child("line");
 
 	for (size_t i = 0; i < c.swts.size(); ++i)
@@ -54,7 +52,18 @@ inline void save(const CanvasContext &c)
 			subnode.append_attribute("y") = l.y;
 		}
 	}
+}
 
+/**
+ * @brief Save the text component to the xml doc
+ *
+ * @param c Get the text info for storage
+ * @param node Xml document node to store to
+ *
+ * @return
+ */
+inline auto save_text(const CanvasContext &c, pugi::xml_node &node)
+{
 	auto texts = node.append_child("text");
 
 	for (size_t i = 0; i < c.txwts.size(); ++i)
@@ -70,9 +79,35 @@ inline void save(const CanvasContext &c)
 		ln.append_attribute("x") = t.dim.x;
 		ln.append_attribute("y") = t.dim.y;
 	}
-
-	doc.save_file("save.xml");
 }
+
+/**
+ * @brief Save the canvas into save.xml using XML
+ * <doc>
+ *     <ls rad= col= s= x= y= w= h= >
+ *         <l x= y= > ...
+ *     </ls> ...
+ * </doc>
+ *
+ * @param c Get lines info and texture dimensions
+ */
+inline void save(const CanvasContext &c, const char *filename)
+{
+	static_assert(sizeof(SDL_Color) == 4, "SDL_Color must be 4 bytes long.");
+
+	pugi::xml_document doc;
+
+	auto node = doc.append_child("doc");
+
+	save_strokes(c, node);
+	save_text(c, node);
+
+	doc.save_file(filename);
+}
+
+// -----------------------------------------------------------------------------
+// Loading
+// -----------------------------------------------------------------------------
 
 /**
  * @brief Load attributes with exception
@@ -95,30 +130,14 @@ auto load_attributes(const pugi::xml_node &ls, std::array<const char *, n> ids)
 	return attribs;
 }
 
-/**
- * @brief Load save.xml into lines info and texture dimensions
- *
- * @param c Place to load the stored information
- */
-inline auto load(CanvasContext &c) -> bool
+inline void load_strokes(CanvasContext &c, pugi::xml_node &node)
 {
-	static_assert(sizeof(SDL_Color) == 4, "SDL_Color must be 4 bytes long.");
-
-	pugi::xml_document doc;
-
-	auto status = doc.load_file("save.xml");
-
-	if (status.status != pugi::status_ok) // Handle parse error
-		return true;
-
-	auto node = doc.first_child();
-
 	for (auto ls = node.child("line").first_child(); ls != nullptr; ls = ls.next_sibling())
 	{
 		const auto attrib = load_attributes(ls, std::array{ "r", "c", "s", "x", "y", "w", "h" });
 
 		if (!attrib)
-			return true;
+			throw std::runtime_error("A line has incomplete attributes.");
 
 		const auto &nodes = attrib.value();
 
@@ -133,7 +152,7 @@ inline auto load(CanvasContext &c) -> bool
 			const auto attrib = load_attributes(l, std::array{ "x", "y" });
 
 			if (!attrib)
-				return true;
+				throw std::runtime_error("Coords missing for a line.");
 
 			const auto &nodes = attrib.value();
 
@@ -146,13 +165,16 @@ inline auto load(CanvasContext &c) -> bool
 		c.swls.push_back({ std::move(ps) });
 		c.swlis.push_back({ radius, scale, color });
 	}
+}
 
+inline void load_text(CanvasContext &c, pugi::xml_node &node)
+{
 	for (auto t = node.child("text").first_child(); t != nullptr; t = t.next_sibling())
 	{
 		const auto attrib = load_attributes(t, std::array{ "s", "t", "x", "y" });
 
 		if (!attrib)
-			return true;
+			throw std::runtime_error("A text has incomplete attributes.");
 
 		const auto &nodes = attrib.value();
 
@@ -164,6 +186,26 @@ inline auto load(CanvasContext &c) -> bool
 		c.txwtxis.push_back({ .str = text, .scale = scale });
 		c.txwts.push_back({ .dim = { point.x, point.y, 0.F, 0.F } });
 	}
+}
 
-	return false;
+/**
+ * @brief Load save.xml into lines info and texture dimensions
+ *
+ * @param c Place to load the stored information
+ */
+inline void load(CanvasContext &c, const char *filename)
+{
+	static_assert(sizeof(SDL_Color) == 4, "SDL_Color must be 4 bytes long.");
+
+	pugi::xml_document doc;
+
+	auto status = doc.load_file(filename);
+
+	if (status.status != pugi::status_ok) // Handle parse error
+		throw std::runtime_error(status.description());
+
+	auto node = doc.first_child();
+
+	load_strokes(c, node);
+	load_text(c, node);
 }
