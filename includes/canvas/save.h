@@ -20,8 +20,6 @@
  *
  * @param c Get the stroke items
  * @param node Location to store the xml data
- *
- * @return
  */
 inline void save_strokes(const CanvasContext &c, pugi::xml_node &node)
 {
@@ -59,8 +57,6 @@ inline void save_strokes(const CanvasContext &c, pugi::xml_node &node)
  *
  * @param c Get the text info for storage
  * @param node Xml document node to store to
- *
- * @return
  */
 inline auto save_text(const CanvasContext &c, pugi::xml_node &node)
 {
@@ -130,6 +126,12 @@ auto load_attributes(const pugi::xml_node &ls, std::array<const char *, n> ids)
 	return attribs;
 }
 
+/**
+ * @brief Load the strokes component to the canvas
+ *
+ * @param c Location to store to
+ * @param node XML document to load
+ */
 inline void load_strokes(CanvasContext &c, pugi::xml_node &node)
 {
 	for (auto ls = node.child("line").first_child(); ls != nullptr; ls = ls.next_sibling())
@@ -167,6 +169,12 @@ inline void load_strokes(CanvasContext &c, pugi::xml_node &node)
 	}
 }
 
+/**
+ * @brief Load the texts component to the canvas
+ *
+ * @param c Location to store to
+ * @param node XML document to load
+ */
 inline void load_text(CanvasContext &c, pugi::xml_node &node)
 {
 	for (auto t = node.child("text").first_child(); t != nullptr; t = t.next_sibling())
@@ -190,7 +198,6 @@ inline void load_text(CanvasContext &c, pugi::xml_node &node)
 
 /**
  * @brief Load save.xml into lines info and texture dimensions
- *
  * @param c Place to load the stored information
  */
 inline void load(CanvasContext &c, const char *filename)
