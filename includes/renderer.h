@@ -15,8 +15,7 @@ concept is_renderer = requires(T t)
 
 	t.render_target();
 
-	t.draw_joint_stroke(mth::Point<int>());
-	t.draw_con_stroke(mth::Point<int>(), mth::Point<int>());
+	t.draw_stroke(mth::Point<int>(), mth::Point<int>());
 
 	{ t.get_texture_size(typename T::Texture()) } -> std::same_as<mth::Dim<int>>;
 	

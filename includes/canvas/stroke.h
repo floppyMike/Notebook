@@ -44,26 +44,6 @@ inline auto get_line_dim(const Renderer &r, const ScreenLine &sl, const ScreenLi
 }
 
 /**
- * @brief Render joint between strokes
- *
- * @param r Get draw functions
- * @param st Get texture to draw to
- * @param sli Get radius information
- * @param p Point to draw the joint to
- */
-inline void render_joint(Renderer &r, ScreenTexture &st, const ScreenLineInfo &sli, mth::Point<int> p)
-{
-	const mth::Rect<int> area = { p.x - sli.radius / 2, p.y - sli.radius / 2, sli.radius * 2, sli.radius * 2 };
-
-	r.set_stroke_target(st.data, area, sli.radius);
-
-	r.set_stroke_color(sli.color);
-	r.draw_joint_stroke(p);
-
-	r.render_stroke(st.data);
-}
-
-/**
  * @brief Render a stroke connection between 2 strokes
  *
  * @param r Get draw functions
@@ -81,12 +61,13 @@ inline void render_conn(Renderer &r, ScreenTexture &st, const ScreenLineInfo &sl
 	const auto diff_x = std::abs(to.x - from.x);
 	const auto diff_y = std::abs(to.y - from.y);
 
-	const mth::Rect<int> area = { min_x - sli.radius / 2, min_y - sli.radius / 2, diff_x + sli.radius, diff_y + sli.radius };
+	const mth::Rect<int> area = { min_x - sli.radius / 2, min_y - sli.radius / 2, diff_x + sli.radius,
+								  diff_y + sli.radius };
 
 	r.set_stroke_target(st.data, area, sli.radius);
 
 	r.set_stroke_color(sli.color);
-	r.draw_con_stroke(from, to);
+	r.draw_stroke(from, to);
 
 	r.render_stroke(st.data);
 }
@@ -104,10 +85,13 @@ inline auto start_stroke(const Window &w, Renderer &r, const ScreenLineInfo &sli
 	const auto mp	  = sdl::mouse_position();
 	const auto w_size = w.get_windowsize();
 
-	ScreenTexture st = { .dim = { 0, 0, w_size.w, w_size.h }, .data = r.create_stroke_texture(w_size.w, w_size.h) };
+	auto t = r.create_stroke_texture(w_size.w, w_size.h);
+	r.render_stroke(t);
+
+	ScreenTexture st = { .dim = { 0, 0, w_size.w, w_size.h }, .data = std::move(t) };
 	ScreenLine	  sl = { .points = { { mp.x, mp.y } } };
 
-	render_joint(r, st, sli, mp);
+	render_conn(r, st, sli, mp, mp);
 
 	return { std::move(st), std::move(sl) };
 }
@@ -142,8 +126,6 @@ inline void continue_stroke(const Window &w, Renderer &r, ScreenTexture &st, Scr
 inline auto finalize_stroke(const Window &w, Renderer &r, ScreenTexture &st, ScreenLine &sl, const ScreenLineInfo &sli)
 	-> ScreenTexture
 {
-	render_joint(r, st, sli, sl.points.back());
-
 	const auto line_dim = get_line_dim(r, sl, sli);
 	auto	   tex		= r.crop_texture(st.data, line_dim);
 
@@ -228,42 +210,33 @@ inline auto find_line_intersections(const WorldTextureDB &wts, const WorldLineDB
  */
 inline void redraw(Renderer &r, WorldTextureDB &wts, const WorldLineDB &wls, const WorldLineInfoDB &wlis)
 {
-	// 	for (size_t i = 0; i < wts.size(); ++i)
-	// 	{
-	// 		auto		 &wt	= wts[i];
-	// 		const auto &wl	= wls[i];
-	// 		const auto &wli = wlis[i];
-	//
-	// 		sdl::Camera2D cam{ .loc = { 0.F, 0.F }, .scale = wli.scale };
-	//
-	// 		const auto t_size = cam.world_screen(mth::Dim<float>{ wt.dim.w, wt.dim.h });
-	// 		auto	   t	  = r.create_stroke_texture(t_size.w, t_size.h);
-	//
-	// 		const auto rad = std::lrint(wli.radius * wli.scale);
-	//
-	// 		if (rad < 1)
-	// 			throw std::runtime_error("Stroke radius is under 1");
-	//
-	// 		r.set_stroke_color(wli.color);
-	// 		r.set_stroke_target(t, t_size, rad);
-	//
-	// 		auto prev_pos = cam.world_screen(wl.points.front());
-	//
-	// 		r.draw_joint_stroke(prev_pos);
-	//
-	// 		for (auto p = wl.points.begin() + 1; p != wl.points.end(); ++p)
-	// 		{
-	// 			const auto next_pos = cam.world_screen(*p);
-	// 			r.draw_con_stroke(prev_pos, next_pos, rad);
-	// 			prev_pos = next_pos;
-	// 		}
-	//
-	// 		if (wl.points.size() > 1)
-	// 			r.draw_joint_stroke(prev_pos, rad);
-	//
-	// 		wt.data = std::move(t);
-	// 		r.render_target();
-	// 	}
+	for (size_t i = 0; i < wts.size(); ++i)
+	{
+		auto		 &wt	= wts[i];
+		const auto &wl	= wls[i];
+		const auto &wli = wlis[i];
+
+		sdl::Camera2D cam{ .loc = { 0.F, 0.F }, .scale = wli.scale };
+
+		const auto t_size = cam.world_screen(mth::Dim<float>{ wt.dim.w, wt.dim.h });
+		auto	   t	  = r.create_stroke_texture(t_size.w, t_size.h);
+		const auto rad	  = std::lrint(wli.radius * wli.scale);
+
+		if (rad < 1)
+			throw std::runtime_error("Stroke radius is under 1");
+
+		r.set_stroke_color(wli.color);
+		r.set_stroke_target(t, { 0, 0, t_size.w, t_size.h }, rad);
+
+		std::vector<mth::Point<int>> ps_pos(wl.points.size());
+		std::transform(wl.points.begin(), wl.points.end(), ps_pos.begin(),
+					   [&cam](mth::Point<float> p) { return cam.world_screen(p); });
+
+		r.draw_stroke_multi(ps_pos);
+
+		r.render_stroke(t);
+		wt.data = std::move(t);
+	}
 }
 
 inline void change_radius(Renderer &r, ScreenLineInfo &sli, int rad)

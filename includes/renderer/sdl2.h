@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstring>
+#include <span>
 
 #include <SDL.h>
 #include <SDL_ttf.h>
@@ -58,7 +59,7 @@ public:
 		if (!c.r)
 			throw std::runtime_error(SDL_GetError());
 
-		// SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1"); // Enable a blur effect when copying textures
+		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1"); // Enable a blur effect when copying textures
 	}
 
 	void refresh()
@@ -180,13 +181,11 @@ public:
 		int	  pitch;
 		SDL_LockTexture(t.get(), nullptr, &pixels, &pitch);
 
-		std::memset(pixels, 0, pitch / 4 * h); // Make texture transparent (pitch is rgba) = 0 (4 byte integer)
+		std::memset(pixels, 0, pitch / 4 * h); // Make texture transparent (pitch is rgba * width)
 
 		// God, please let the address stay the same
 		c.surf.reset(cairo_image_surface_create_for_data((unsigned char *)pixels, CAIRO_FORMAT_ARGB32, w, h, pitch));
 		c.cxt.reset(cairo_create(c.surf.get()));
-
-		SDL_UnlockTexture(t.get());
 
 		return t;
 	}
@@ -194,48 +193,54 @@ public:
 	void set_stroke_color(SDL_Color col)
 	{
 		assert(c.cxt);
-
 		cairo_set_source_rgba(c.cxt.get(), col.r / 255., col.g / 255., col.b / 255., col.a / 255.);
 	}
 
 	void set_stroke_target(const CacheTexture &t, mth::Rect<int> area, int r)
 	{
-		assert(t);
-		
-		void* pixels;
-		int pitch;
+		assert(t && c.cxt);
+
+		void *pixels;
+		int	  pitch;
 
 		SDL_LockTexture(t.get(), &sdl::to_rect(area), &pixels, &pitch);
 
 		cairo_set_line_width(c.cxt.get(), r);
+		cairo_set_line_cap(c.cxt.get(), CAIRO_LINE_CAP_ROUND);
 	}
 
 	void render_stroke(const CacheTexture &t)
 	{
 		assert(t);
-
-		SDL_UnlockTexture(t.get());
+		SDL_UnlockTexture(t.get()); // Super slow, but I have to :(
 	}
 
-	void draw_joint_stroke(mth::Point<int> p) const
+	void draw_stroke(mth::Point<int> from, mth::Point<int> to) const
 	{
 		assert(c.cxt);
-
-		cairo_set_line_cap(c.cxt.get(), CAIRO_LINE_CAP_ROUND);
-
-		cairo_move_to(c.cxt.get(), (double)p.x, (double)p.y);
-		cairo_close_path(c.cxt.get());
-		cairo_stroke(c.cxt.get());
-	}
-
-	void draw_con_stroke(mth::Point<int> from, mth::Point<int> to) const
-	{
-		assert(c.cxt);
-
-		cairo_set_line_cap(c.cxt.get(), CAIRO_LINE_CAP_BUTT);
 
 		cairo_move_to(c.cxt.get(), (double)from.x, (double)from.y);
 		cairo_line_to(c.cxt.get(), (double)to.x, (double)to.y);
+
+		cairo_stroke(c.cxt.get());
+	}
+
+	void draw_stroke_multi(std::span<mth::Point<int>> arr) const
+	{
+		assert(c.cxt);
+
+		if (arr.size() <= 1)
+			return;
+
+		if (arr.size() <= 2)
+		{
+			draw_stroke(arr[0], arr[1]);
+			return;
+		}
+
+		cairo_move_to(c.cxt.get(), (double)arr[0].x, (double)arr[0].y);
+
+		for (auto i = arr.begin() + 1; i != arr.end(); ++i) cairo_line_to(c.cxt.get(), (double)i->x, (double)i->y);
 
 		cairo_stroke(c.cxt.get());
 	}
