@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstring>
 #include <SDL.h>
 
 #include "canvas.h"
@@ -21,6 +22,61 @@ public:
 
 		m_canvas.init(m_r);
 		m_menu.init(m_w, m_r);
+
+		const mth::Dim<int> win = m_w.get_windowsize();
+
+		tex.reset(
+			SDL_CreateTexture(m_r._renderer(), SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, win.w, win.h));
+
+		SDL_SetTextureBlendMode(tex.get(), SDL_BLENDMODE_BLEND);
+
+		void *pixels;
+		int	  pitch;
+
+		SDL_LockTexture(tex.get(), nullptr, &pixels, &pitch);
+
+		std::memset(pixels, 0, pitch / 4 * win.h);
+
+		suf.reset(
+			cairo_image_surface_create_for_data((unsigned char *)pixels, CAIRO_FORMAT_ARGB32, win.w, win.h, pitch));
+		ctx.reset(cairo_create(suf.get()));
+
+		// std::memset(pixels, 0, pitch / 4 * 300);
+
+		cairo_set_source_rgb(ctx.get(), 0, 0, 0);
+		cairo_set_line_width(ctx.get(), 10);
+		cairo_set_line_cap(ctx.get(), CAIRO_LINE_CAP_ROUND);
+
+		cairo_move_to(ctx.get(), 128.0, 50.0);
+		cairo_line_to(ctx.get(), 128.0, 200.0);
+		cairo_stroke(ctx.get());
+
+		cairo_set_line_cap(ctx.get(), CAIRO_LINE_CAP_SQUARE);
+
+		cairo_move_to(ctx.get(), 192.0, 50.0);
+		cairo_line_to(ctx.get(), 192.0, 200.0);
+		cairo_stroke(ctx.get());
+
+		ctl::print("%ld\n", (long)pixels);
+
+		SDL_UnlockTexture(tex.get());
+
+		SDL_LockTexture(tex.get(), nullptr, &pixels, &pitch);
+
+		/* draw helping lines */
+		cairo_set_source_rgb(ctx.get(), 1, 0.2, 0.2);
+		cairo_set_line_width(ctx.get(), 1);
+		cairo_move_to(ctx.get(), 64.0, 50.0);
+		cairo_line_to(ctx.get(), 64.0, 200.0);
+		cairo_move_to(ctx.get(), 128.0, 50.0);
+		cairo_line_to(ctx.get(), 128.0, 200.0);
+		cairo_move_to(ctx.get(), 192.0, 50.0);
+		cairo_line_to(ctx.get(), 192.0, 200.0);
+		cairo_stroke(ctx.get());
+
+		ctl::print("%ld\n", (long)pixels);
+
+		SDL_UnlockTexture(tex.get());
 	}
 
 	void pre_pass()
@@ -66,8 +122,29 @@ public:
 		m_r.render(
 			[this]
 			{
+				// 				void *a;
+				// 				int	  b;
+				//
+				// 				SDL_LockTexture(tex.get(), nullptr, &a, &b);
+				//
+				// 				cairo_set_source_rgb(ctx.get(), 0, 0, 0);
+				// 				cairo_set_line_width(ctx.get(), 10);
+				// 				cairo_set_line_cap(ctx.get(), CAIRO_LINE_CAP_ROUND);
+				//
+				// 				cairo_move_to(ctx.get(), 64.0, 50.0);
+				// 				cairo_line_to(ctx.get(), 64.0, 200.0);
+				// 				cairo_stroke(ctx.get());
+				//
+				// 				SDL_UnlockTexture(tex.get());
+				//
+				// 				SDL_RenderCopy(m_r._renderer(), tex.get(), nullptr, nullptr);
+
 				m_canvas.draw(m_r);
 				m_menu.draw(m_w, m_r);
+
+#ifndef NDEBUG
+				m_r.refresh();
+#endif
 			});
 	}
 
@@ -78,4 +155,9 @@ private:
 
 	Canvas m_canvas;
 	Menu   m_menu;
+
+	sdl::Texture tex;
+
+	CairoContext ctx;
+	CairoSurface suf;
 };

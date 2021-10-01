@@ -329,8 +329,6 @@ class Canvas
 public:
 	void init(Renderer &r)
 	{
-		r.set_stroke_radius(c.ssli.radius);
-
 		const char *font_path = "res/arial.ttf";
 		auto		f		  = r.create_font(font_path, 30);
 

@@ -42,14 +42,14 @@ struct ScreenLineInfo
 
 struct WorldTexture
 {
-	mth::Rect<float> dim;
-	TextureData		 data;
+	mth::Rect<float>  dim;
+	Renderer::Texture data;
 };
 
 struct ScreenTexture
 {
-	mth::Rect<int> dim;
-	TextureData	   data;
+	mth::Rect<int>		   dim;
+	Renderer::CacheTexture data;
 };
 
 // -----------------------------------------------------------------------------
@@ -64,7 +64,7 @@ struct WorldTextInfo
 
 struct TextFont
 {
-	FontData data;
+	Renderer::Font data;
 };
 
 // -----------------------------------------------------------------------------
@@ -89,8 +89,8 @@ struct Select
 
 struct CanvasDebug
 {
-	FontData	font;
-	TextureData mouse;
+	Renderer::Font	  font;
+	Renderer::Texture mouse;
 };
 
 // -----------------------------------------------------------------------------
