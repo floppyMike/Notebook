@@ -196,7 +196,7 @@ public:
 		cairo_set_source_rgba(c.cxt.get(), col.r / 255., col.g / 255., col.b / 255., col.a / 255.);
 	}
 
-	void set_stroke_target(const CacheTexture &t, mth::Rect<int> area, int r)
+	void set_stroke_target(const CacheTexture &t, mth::Rect<int> area, float r)
 	{
 		assert(t && c.cxt);
 

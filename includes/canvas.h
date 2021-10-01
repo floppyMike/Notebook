@@ -71,6 +71,7 @@ inline void handle_general(const SDL_Event &e, const KeyEvent &ke, const Window 
 
 	case SDL_MOUSEWHEEL:
 		c.cam.zoom(1.F + (float)e.wheel.y / 10.F, sdl::mouse_position());
+		change_radius(r, c.cam, c.ssli, c.ssli.i_rad);
 		r.refresh();
 
 		break;
@@ -108,8 +109,8 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 	case SDL_KEYDOWN:
 		switch (e.key.keysym.sym)
 		{
-		case SDLK_UP: change_radius(r, c.ssli, c.ssli.radius + 1); break;
-		case SDLK_DOWN: change_radius(r, c.ssli, c.ssli.radius - 1); break;
+		case SDLK_UP: change_radius(r, c.cam, c.ssli, c.ssli.i_rad + 1); break;
+		case SDLK_DOWN: change_radius(r, c.cam, c.ssli, c.ssli.i_rad - 1); break;
 
 		case SDLK_r: c.ssli.color = sdl::RED; break;
 		case SDLK_b: c.ssli.color = sdl::BLACK; break;
@@ -120,7 +121,7 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 	case SDL_MOUSEMOTION:
 		if (ke.test(KeyEventMap::MOUSE_LEFT) && c.sst.data)
 		{
-			continue_stroke(w, r, c.sst, c.ssl, c.ssli);
+			continue_stroke(w, r, c.sst, c.ssl, c.ssli, c.cam);
 			r.refresh();
 		}
 
@@ -137,16 +138,10 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 
 		break;
 
-	case SDL_MOUSEWHEEL:
-		c.cam.zoom(1.F + (float)e.wheel.y / 10.F, sdl::mouse_position());
-		r.refresh();
-
-		break;
-
 	case SDL_MOUSEBUTTONDOWN:
 		if (e.button.button == SDL_BUTTON_LEFT)
 		{
-			std::tie(c.sst, c.ssl) = start_stroke(w, r, c.ssli);
+			std::tie(c.sst, c.ssl) = start_stroke(w, r, c.ssli, c.cam);
 			r.refresh();
 		}
 
@@ -329,6 +324,8 @@ class Canvas
 public:
 	void init(Renderer &r)
 	{
+		change_radius(r, c.cam, c.ssli, 3);
+
 		const char *font_path = "res/arial.ttf";
 		auto		f		  = r.create_font(font_path, 30);
 

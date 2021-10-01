@@ -20,7 +20,7 @@ struct WorldLine
 
 struct WorldLineInfo
 {
-	float	  radius;
+	float	  radius; // The radius is screen == world
 	float	  scale;
 	SDL_Color color;
 };
@@ -32,8 +32,10 @@ struct ScreenLine
 
 struct ScreenLineInfo
 {
-	uint8_t	  radius = 3;
-	SDL_Color color	 = sdl::BLACK;
+	SDL_Color color = sdl::BLACK;
+
+	int	  i_rad;
+	float radius;
 };
 
 // -----------------------------------------------------------------------------
