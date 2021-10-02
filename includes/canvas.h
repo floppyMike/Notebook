@@ -121,45 +121,62 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 	case SDL_MOUSEMOTION:
 		if (ke.test(KeyEventMap::MOUSE_LEFT) && c.sst.data)
 		{
-			continue_stroke(w, r, c.sst, c.ssl, c.ssli, c.cam);
+			continue_stroke(w, r, c.sst, c.ssl, c.ssli);
 			r.refresh();
-		}
-
-		else if (ke.test(KeyEventMap::MOUSE_RIGHT))
-		{
-			const auto wp = c.cam.screen_world(mth::Point<int>{ e.motion.x, e.motion.y });
-
-			for (size_t i : find_line_intersections(c.swts, c.swls, c.swlis, wp))
-			{
-				erase(i, c.swts, c.swls, c.swlis);
-				r.refresh();
-			}
 		}
 
 		break;
 
 	case SDL_MOUSEBUTTONDOWN:
-		if (e.button.button == SDL_BUTTON_LEFT)
+		switch (e.button.button)
 		{
-			std::tie(c.sst, c.ssl) = start_stroke(w, r, c.ssli, c.cam);
+		case SDL_BUTTON_LEFT:
+			std::tie(c.sst, c.ssl) = start_stroke(w, r, c.ssli);
 			r.refresh();
+
+			break;
+
+		case SDL_BUTTON_RIGHT: c.erase_mp = c.cam.screen_world(sdl::mouse_position()); break;
 		}
 
 		break;
 
 	case SDL_MOUSEBUTTONUP:
-		if (e.button.button == SDL_BUTTON_LEFT && c.sst.data)
+		switch (e.button.button)
 		{
-			c.sst			   = finalize_stroke(w, r, c.sst, c.ssl, c.ssli);
-			auto [wt, wl, wli] = transform_target_line(c.cam, c.sst, c.ssl, c.ssli);
+		case SDL_BUTTON_LEFT:
+			if (c.sst.data)
+			{
+				c.sst			   = finalize_stroke(w, r, c.sst, c.ssl, c.ssli);
+				auto [wt, wl, wli] = transform_target_line(c.cam, c.sst, c.ssl, c.ssli);
 
-			c.swts.push_back(std::move(wt));
-			c.swls.push_back(std::move(wl));
-			c.swlis.push_back(wli);
+				c.swts.push_back(std::move(wt));
+				c.swls.push_back(std::move(wl));
+				c.swlis.push_back(wli);
 
-			clear_target_line(c.sst, c.ssl);
+				clear_target_line(c.sst, c.ssl);
 
-			r.refresh();
+				r.refresh();
+			}
+
+			break;
+
+		case SDL_BUTTON_RIGHT:
+			if (c.erase_mp)
+			{
+				const auto wp = c.cam.screen_world(sdl::mouse_position());
+
+				for (size_t i :
+					 find_line_intersections(c.swts, c.swls, c.swlis, mth::Line<float>::from(*c.erase_mp, wp)))
+				{
+					erase(i, c.swts, c.swls, c.swlis);
+					r.refresh();
+				}
+
+				c.erase_mp.reset();
+			}
+
+			break;
 		}
 
 		break;
@@ -343,7 +360,7 @@ public:
 		draw_texts(r, c);
 		draw_selection(r, c);
 
-		debug_draw(r, c);
+		debug_draw(r, c.cam, c);
 	}
 
 	bool event(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r)

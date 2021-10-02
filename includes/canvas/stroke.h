@@ -54,22 +54,17 @@ inline auto get_line_dim(const Renderer &r, const ScreenLine &sl, const ScreenLi
  * @param from Point to draw from
  * @param to Point to draw to
  */
-inline void render_conn(Renderer &r, ScreenTexture &st, const ScreenLineInfo &sli, mth::Point<int> from,
-						mth::Point<int> to)
+inline void render_conn(Renderer &r, ScreenTexture &st, const ScreenLineInfo &sli, mth::Line<int> path)
 {
-	const auto min_x = std::min(from.x, to.x);
-	const auto min_y = std::min(from.y, to.y);
+	const auto abs = path.abs_rect();
 
-	const auto diff_x = std::abs(to.x - from.x);
-	const auto diff_y = std::abs(to.y - from.y);
-
-	const mth::Rect<int> area = { min_x - (int)sli.radius / 2, min_y - (int)sli.radius / 2, diff_x + (int)sli.radius,
-								  diff_y + (int)sli.radius };
+	const mth::Rect<int> area = { abs.x - (int)sli.radius, abs.y - (int)sli.radius, abs.w + (int)sli.radius * 2,
+								  abs.h + (int)sli.radius * 2 };
 
 	r.set_stroke_target(st.data, area, sli.radius);
 
 	r.set_stroke_color(sli.color);
-	r.draw_stroke(from, to);
+	r.draw_stroke(path.pos1(), path.pos2());
 
 	r.render_stroke(st.data);
 }
@@ -81,7 +76,7 @@ inline void render_conn(Renderer &r, ScreenTexture &st, const ScreenLineInfo &sl
  * @param r Render to texture and window
  * @param c Fill out target data
  */
-inline auto start_stroke(const Window &w, Renderer &r, const ScreenLineInfo &sli, const sdl::Camera2D &cam)
+inline auto start_stroke(const Window &w, Renderer &r, const ScreenLineInfo &sli)
 	-> std::pair<ScreenTexture, ScreenLine>
 {
 	const auto mp	  = sdl::mouse_position();
@@ -93,7 +88,7 @@ inline auto start_stroke(const Window &w, Renderer &r, const ScreenLineInfo &sli
 	ScreenTexture st = { .dim = { 0, 0, w_size.w, w_size.h }, .data = std::move(t) };
 	ScreenLine	  sl = { .points = { { mp.x, mp.y } } };
 
-	render_conn(r, st, sli, mp, mp);
+	render_conn(r, st, sli, mth::Line<int>::from(mp, mp));
 
 	return { std::move(st), std::move(sl) };
 }
@@ -105,15 +100,14 @@ inline auto start_stroke(const Window &w, Renderer &r, const ScreenLineInfo &sli
  * @param r Render line to texture and window
  * @param c Add target data
  */
-inline void continue_stroke(const Window &w, Renderer &r, ScreenTexture &st, ScreenLine &sl, const ScreenLineInfo &sli,
-							const sdl::Camera2D &cam)
+inline void continue_stroke(const Window &w, Renderer &r, ScreenTexture &st, ScreenLine &sl, const ScreenLineInfo &sli)
 {
 	const auto mp = sdl::mouse_position();
 
 	if (mp == sl.points.back()) // Some systems (like linux) have multiple events...
 		return;
 
-	render_conn(r, st, sli, sl.points.back(), mp);
+	render_conn(r, st, sli, mth::Line<int>::from(sl.points.back(), mp));
 	sl.points.push_back(mp);
 }
 
@@ -180,27 +174,30 @@ inline void clear_target_line(ScreenTexture &st, ScreenLine &sl)
  * @return Collection of indexes for collisions
  */
 inline auto find_line_intersections(const WorldTextureDB &wts, const WorldLineDB &wls, const WorldLineInfoDB &wlis,
-									mth::Point<float> p) -> std::vector<size_t>
+									mth::Line<float> ml) -> std::vector<size_t>
 {
 	std::vector<size_t> idx;
 
 	for (size_t i = 0; i < wts.size(); ++i)
-		if (mth::collision(p, wts[i].dim))
-			idx.emplace_back(i);
+	{
+		if (mth::collision(ml, wts[i].dim))
+		{
+			const auto &ps = wls[i].points;
 
-	idx.erase(std::remove_if(idx.begin(), idx.end(),
-							 [&wts, &wls, &wlis, p](const auto i)
-							 {
-								 return std::none_of(wls[i].points.begin(), wls[i].points.end(),
-													 [offset = wts[i].dim.pos(), &wlis, i, p](mth::Point<float> l)
-													 {
-														 const mth::Rect<float> box = { l.x + offset.x, l.y + offset.y,
-																						wlis[i].radius * 4.F,
-																						wlis[i].radius * 4.F };
-														 return mth::collision(p, box);
-													 });
-							 }),
-			  idx.end());
+			if (ps.size() < 5)
+			{
+				idx.push_back(i);
+				continue;
+			}
+
+			for (auto ii = ps.begin(); ii != ps.end() - 1; ++ii)
+				if (mth::collision(mth::Line<float>::from(*ii + wts[i].dim.pos(), *(ii + 1) + wts[i].dim.pos()), ml))
+				{
+					idx.push_back(i);
+					break;
+				}
+		}
+	}
 
 	return idx;
 }

@@ -146,6 +146,8 @@ struct CanvasContext
 {
 	Select select;
 
+	std::optional<mth::Point<float>> erase_mp;
+
 #ifndef NDEBUG
 	CanvasDebug debug;
 #endif

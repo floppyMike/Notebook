@@ -43,7 +43,7 @@ struct RendererContext
 class Renderer
 {
 public:
-	auto _renderer()
+	auto _renderer() const
 	{
 		return c.r.get();
 	}
