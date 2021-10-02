@@ -1,7 +1,9 @@
 #pragma once
 
+#include <cstring>
 #include <SDL.h>
 
+#include "CustomLibrary/Error.h"
 #include "canvas.h"
 #include "menu.h"
 #include "event.h"
@@ -68,6 +70,10 @@ public:
 			{
 				m_canvas.draw(m_r);
 				m_menu.draw(m_w, m_r);
+
+#ifndef NDEBUG
+				m_r.refresh();
+#endif
 			});
 	}
 

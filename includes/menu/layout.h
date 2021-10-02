@@ -18,15 +18,15 @@ struct Icon
 
 struct Bar
 {
-	mth::Rect<int> dim;
-	TextureData	   data;
+	mth::Rect<int>	  dim;
+	Renderer::Texture data;
 };
 
 using IconDB = std::vector<Icon>;
 
 struct BarContext
 {
-	TextureData icon_map;
-	Bar			bar;
-	IconDB		icons;
+	Renderer::Texture icon_map;
+	Bar				  bar;
+	IconDB			  icons;
 };

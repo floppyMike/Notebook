@@ -70,10 +70,15 @@ inline void handle_general(const SDL_Event &e, const KeyEvent &ke, const Window 
 		break;
 
 	case SDL_MOUSEWHEEL:
-		c.cam.zoom(1.F + (float)e.wheel.y / 10.F, sdl::mouse_position());
+	{
+		const auto s = std::clamp(c.cam.scale * (1.F + (float)e.wheel.y / 10.F), 0.1F, 10.F);
+		c.cam.set_zoom(s, sdl::mouse_position());
+		change_radius(r, c.cam, c.ssli, c.ssli.i_rad);
+
 		r.refresh();
 
 		break;
+	}
 
 	case EVENT_SAVE:
 		if (const auto filename = open_file_save(); filename)
@@ -108,8 +113,8 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 	case SDL_KEYDOWN:
 		switch (e.key.keysym.sym)
 		{
-		case SDLK_UP: change_radius(r, c.ssli, c.ssli.radius + 1); break;
-		case SDLK_DOWN: change_radius(r, c.ssli, c.ssli.radius - 1); break;
+		case SDLK_UP: change_radius(r, c.cam, c.ssli, c.ssli.i_rad + 1); break;
+		case SDLK_DOWN: change_radius(r, c.cam, c.ssli, c.ssli.i_rad - 1); break;
 
 		case SDLK_r: c.ssli.color = sdl::RED; break;
 		case SDLK_b: c.ssli.color = sdl::BLACK; break;
@@ -124,47 +129,62 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 			r.refresh();
 		}
 
-		else if (ke.test(KeyEventMap::MOUSE_RIGHT))
+		else if (ke.test(KeyEventMap::MOUSE_RIGHT) && c.erase_mp)
 		{
-			const auto wp = c.cam.screen_world(mth::Point<int>{ e.motion.x, e.motion.y });
-
-			for (size_t i : find_line_intersections(c.swts, c.swls, c.swlis, wp))
-			{
-				erase(i, c.swts, c.swls, c.swlis);
-				r.refresh();
-			}
+			r.refresh();
 		}
 
 		break;
 
-	case SDL_MOUSEWHEEL:
-		c.cam.zoom(1.F + (float)e.wheel.y / 10.F, sdl::mouse_position());
-		r.refresh();
-
-		break;
-
 	case SDL_MOUSEBUTTONDOWN:
-		if (e.button.button == SDL_BUTTON_LEFT)
+		switch (e.button.button)
 		{
+		case SDL_BUTTON_LEFT:
 			std::tie(c.sst, c.ssl) = start_stroke(w, r, c.ssli);
 			r.refresh();
+
+			break;
+
+		case SDL_BUTTON_RIGHT: c.erase_mp = c.cam.screen_world(sdl::mouse_position()); break;
 		}
 
 		break;
 
 	case SDL_MOUSEBUTTONUP:
-		if (e.button.button == SDL_BUTTON_LEFT && c.sst.data)
+		switch (e.button.button)
 		{
-			c.sst			   = finalize_stroke(w, r, c.sst, c.ssl, c.ssli);
-			auto [wt, wl, wli] = transform_target_line(c.cam, c.sst, c.ssl, c.ssli);
+		case SDL_BUTTON_LEFT:
+			if (c.sst.data)
+			{
+				c.sst			   = finalize_stroke(w, r, c.sst, c.ssl, c.ssli);
+				auto [wt, wl, wli] = transform_target_line(c.cam, c.sst, c.ssl, c.ssli);
 
-			c.swts.push_back(std::move(wt));
-			c.swls.push_back(std::move(wl));
-			c.swlis.push_back(wli);
+				c.swts.push_back(std::move(wt));
+				c.swls.push_back(std::move(wl));
+				c.swlis.push_back(wli);
 
-			clear_target_line(c.sst, c.ssl);
+				clear_target_line(c.sst, c.ssl);
 
-			r.refresh();
+				r.refresh();
+			}
+
+			break;
+
+		case SDL_BUTTON_RIGHT:
+			if (c.erase_mp)
+			{
+				const auto wp = c.cam.screen_world(sdl::mouse_position());
+
+				auto col = find_line_intersections(c.swts, c.swls, c.swlis, mth::Line<float>::from(*c.erase_mp, wp));
+				std::sort(col.rbegin(), col.rend()); // Avoid deletion of empty cells
+
+				for (size_t i : col) erase(i, c.swts, c.swls, c.swlis);
+
+				r.refresh();
+				c.erase_mp.reset();
+			}
+
+			break;
 		}
 
 		break;
@@ -294,6 +314,14 @@ inline void draw_strokes(const Renderer &r, CanvasContext &c)
 
 	if (c.sst.data)
 		r.draw_texture(c.sst.data, c.sst.dim);
+
+	if (c.erase_mp)
+	{
+		const auto e = c.cam.world_screen(*c.erase_mp);
+
+		r.set_draw_color(sdl::GRAY);
+		r.draw_line(e, sdl::mouse_position());
+	}
 }
 
 inline void draw_texts(const Renderer &r, CanvasContext &c)
@@ -329,7 +357,7 @@ class Canvas
 public:
 	void init(Renderer &r)
 	{
-		r.set_stroke_radius(c.ssli.radius);
+		change_radius(r, c.cam, c.ssli, 3);
 
 		const char *font_path = "res/arial.ttf";
 		auto		f		  = r.create_font(font_path, 30);
@@ -348,7 +376,7 @@ public:
 		draw_texts(r, c);
 		draw_selection(r, c);
 
-		debug_draw(r, c);
+		debug_draw(r, c.cam, c);
 	}
 
 	bool event(const SDL_Event &e, const KeyEvent &ke, Window &w, Renderer &r)

@@ -18,7 +18,7 @@ inline auto mid_bottom(const Window &w, mth::Dim<int> d) -> mth::Point<int>
 	return { (win.w - d.w) / 2, win.h - d.h };
 }
 
-inline auto gen_bar(Renderer &r, const TextureData &icon_map, IconDB &icons, size_t selection) -> Bar
+inline auto gen_bar(Renderer &r, const Renderer::Texture &icon_map, IconDB &icons, size_t selection) -> Bar
 {
 	const auto bar = bar_size((int)icons.size());
 	auto	   t   = r.create_texture(bar.w, bar.h);
