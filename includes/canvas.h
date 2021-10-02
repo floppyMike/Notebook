@@ -70,11 +70,15 @@ inline void handle_general(const SDL_Event &e, const KeyEvent &ke, const Window 
 		break;
 
 	case SDL_MOUSEWHEEL:
-		c.cam.zoom(1.F + (float)e.wheel.y / 10.F, sdl::mouse_position());
+	{
+		const auto s = std::clamp(c.cam.scale * (1.F + (float)e.wheel.y / 10.F), 0.1F, 10.F);
+		c.cam.set_zoom(s, sdl::mouse_position());
 		change_radius(r, c.cam, c.ssli, c.ssli.i_rad);
+
 		r.refresh();
 
 		break;
+	}
 
 	case EVENT_SAVE:
 		if (const auto filename = open_file_save(); filename)
@@ -174,8 +178,7 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 				auto col = find_line_intersections(c.swts, c.swls, c.swlis, mth::Line<float>::from(*c.erase_mp, wp));
 				std::sort(col.rbegin(), col.rend()); // Avoid deletion of empty cells
 
-				for (size_t i : col)
-					erase(i, c.swts, c.swls, c.swlis);
+				for (size_t i : col) erase(i, c.swts, c.swls, c.swlis);
 
 				r.refresh();
 				c.erase_mp.reset();
