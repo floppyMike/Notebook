@@ -63,7 +63,7 @@ inline auto open_file_load() -> std::optional<std::string>
 inline auto open_file_save() -> std::optional<std::string>
 {
 	char  filename[1024];
-	FILE *f = popen("zenity --file-selection --save --title='Choose file to load...'", "r");
+	FILE *f = popen("zenity --file-selection --save --title='Choose a path to save to...'", "r");
 	fgets(filename, 1024, f);
 
 	int ret = pclose(f);
@@ -79,14 +79,31 @@ inline auto open_file_save() -> std::optional<std::string>
 
 #elif _WIN32
 
+#define NOMINMAX
+#include <windows.h>
+
 inline auto open_file_load() -> std::optional<std::string>
 {
-	static_assert(false, "TODO");
+	char filename[1024] = { 0 };
+	
+	OPENFILENAME ofn = { .lStructSize = sizeof ofn, .lpstrFile = filename, .nMaxFile = 1024, .lpstrTitle = "Choose file to load..." };
+
+	if (GetOpenFileName(&ofn) == 0)
+		return std::nullopt;
+	
+	return std::string(filename);
 }
 
 inline auto open_file_save() -> std::optional<std::string>
 {
-	static_assert(false, "TODO");
+	char filename[1024] = { 0 };
+	
+	OPENFILENAME ofn = { .lStructSize = sizeof ofn, .lpstrFile = filename, .nMaxFile = 1024, .lpstrTitle = "Choose a path to save to..." };
+
+	if (GetSaveFileName(&ofn) == 0)
+		return std::nullopt;
+	
+	return std::string(filename);
 }
 
 #endif
