@@ -34,10 +34,10 @@ inline auto get_line_dim(const Renderer &r, const ScreenLine &sl, const ScreenLi
 
 	const auto rad = sli.radius;
 
-	min.x -= rad;
-	min.y -= rad;
-	max.x += rad;
-	max.y += rad;
+	min.x -= (int)rad;
+	min.y -= (int)rad;
+	max.x += (int)rad;
+	max.y += (int)rad;
 
 	const auto w = max.x - min.x;
 	const auto h = max.y - min.y;
