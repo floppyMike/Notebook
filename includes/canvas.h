@@ -125,6 +125,11 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 			r.refresh();
 		}
 
+		else if (ke.test(KeyEventMap::MOUSE_RIGHT) && c.erase_mp)
+		{
+			r.refresh();
+		}
+
 		break;
 
 	case SDL_MOUSEBUTTONDOWN:
@@ -166,13 +171,13 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 			{
 				const auto wp = c.cam.screen_world(sdl::mouse_position());
 
-				for (size_t i :
-					 find_line_intersections(c.swts, c.swls, c.swlis, mth::Line<float>::from(*c.erase_mp, wp)))
-				{
-					erase(i, c.swts, c.swls, c.swlis);
-					r.refresh();
-				}
+				auto col = find_line_intersections(c.swts, c.swls, c.swlis, mth::Line<float>::from(*c.erase_mp, wp));
+				std::sort(col.rbegin(), col.rend()); // Avoid deletion of empty cells
 
+				for (size_t i : col)
+					erase(i, c.swts, c.swls, c.swlis);
+
+				r.refresh();
 				c.erase_mp.reset();
 			}
 
@@ -306,6 +311,14 @@ inline void draw_strokes(const Renderer &r, CanvasContext &c)
 
 	if (c.sst.data)
 		r.draw_texture(c.sst.data, c.sst.dim);
+
+	if (c.erase_mp)
+	{
+		const auto e = c.cam.world_screen(*c.erase_mp);
+
+		r.set_draw_color(sdl::GRAY);
+		r.draw_line(e, sdl::mouse_position());
+	}
 }
 
 inline void draw_texts(const Renderer &r, CanvasContext &c)
