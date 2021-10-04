@@ -114,9 +114,12 @@ public:
 		return sdl::load_font(path, size);
 	}
 
-	auto create_text(const Font &f, const char *text) const
+	auto create_text(const Font &f, std::string_view text) const
 	{
-		sdl::Surface s(TTF_RenderText_Blended_Wrapped(f.get(), text, sdl::BLACK, 600));
+		if (text == "") // Avoid crash on empty string
+			text = " ";
+
+		sdl::Surface s(TTF_RenderText_Blended_Wrapped(f.get(), text.data(), sdl::BLACK, 600));
 		ASSERT(s != nullptr, TTF_GetError());
 
 		return Texture(SDL_CreateTextureFromSurface(c.r.get(), s.get()));

@@ -77,12 +77,14 @@ enum class CanvasType
 {
 	STROKE,
 	TEXT,
+	NONE,
 };
 
 struct Select
 {
-	WorldTexture *wts = nullptr;
-	CanvasType	  type;
+	size_t		  idx  = -1;
+	WorldTexture *wt   = nullptr;
+	CanvasType	  type = CanvasType::NONE;
 };
 
 // -----------------------------------------------------------------------------
@@ -110,21 +112,6 @@ using WorldTextInfoDB = std::vector<WorldTextInfo>;
 // Context
 // -----------------------------------------------------------------------------
 
-struct ScreenStroke
-{
-	ScreenLine	   ssl;
-	ScreenLineInfo ssli;
-	ScreenTexture  sst;
-};
-
-struct EditText
-{
-	WorldTexture  txet;
-	WorldTextInfo txei;
-
-	TextFont txf;
-};
-
 struct SaveState
 {
 	CanvasStatus status = CanvasStatus::PAINTING;
@@ -139,14 +126,17 @@ struct SaveState
 	WorldTextInfoDB txwtxis;
 };
 
-struct CanvasContext
-	: ScreenStroke
-	, EditText
-	, SaveState
+struct CanvasContext : SaveState
 {
+	ScreenLine	   ssl;
+	ScreenLineInfo ssli;
+	ScreenTexture  sst;
+
+	TextFont txf;
+
 	Select select;
 
-	std::optional<mth::Point<float>> erase_mp;
+	std::optional<mth::Point<float>> start_mp;
 
 #ifndef NDEBUG
 	CanvasDebug debug;

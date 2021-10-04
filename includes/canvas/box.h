@@ -8,10 +8,22 @@
 
 using namespace ctl;
 
-inline auto start_selecting(const Renderer &r, WorldTextureDB &wts, mth::Point<float> wp) -> WorldTexture *
+inline auto find_texture(WorldTextureDB &ts, mth::Point<float> wp)
 {
-	const auto f =
-		std::find_if(wts.begin(), wts.end(), [wp](const WorldTexture &wt) { return mth::collision(wt.dim, wp); });
+	return std::find_if(ts.rbegin(), ts.rend(), [wp](const WorldTexture &wt) { return mth::collision(wt.dim, wp); });
+}
 
-	return f != wts.end() ? &*f : nullptr;
+inline auto start_selecting(WorldTextureDB &wts, WorldTextureDB &wtxs, mth::Point<float> wp) -> Select
+{
+	auto t = find_texture(wts, wp);
+
+	if (t != wts.rend())
+		return Select{ .idx = (size_t)std::distance(wts.begin(), t.base()) - 1, .wt = &*t, .type = CanvasType::STROKE };
+
+	t = find_texture(wtxs, wp);
+
+	if (t != wtxs.rend())
+		return Select{ .idx = (size_t)std::distance(wtxs.begin(), t.base()) - 1, .wt = &*t, .type = CanvasType::TEXT };
+
+	return Select{ .idx = (size_t)-1, .wt = nullptr, .type = CanvasType::NONE };
 }

@@ -8,15 +8,15 @@
  *
  * @param r Renderer for creating new text texture
  * @param tf Font used for text
- * @param stxi Text for generating (must contain something)
+ * @param stxi Text for generating
  *
  * @return Generated texture
  */
-inline auto non_empty_gen(Renderer &r, const TextFont &tf, const WorldTextInfo &stxi, mth::Point<float> loc)
+inline auto gen_text(Renderer &r, const TextFont &tf, const WorldTextInfo &stxi, mth::Point<float> loc)
 	-> WorldTexture
 {
 	auto	   t = r.create_text(tf.data, stxi.str.c_str());
-	const auto d = (mth::Dim<float>)r.get_texture_size(t) / stxi.scale;
+	const auto d = (mth::Dim<float>)r.get_texture_size(t) / stxi.scale; // Target world pos
 
 	return WorldTexture{ .dim = { loc.x, loc.y, d.w, d.h }, .data = std::move(t) };
 }
@@ -35,7 +35,7 @@ inline void regen_texts(Renderer &r, const TextFont &tf, WorldTextureDB &wtxs, c
 
 	for (size_t i = 0; i < wtxs.size(); ++i)
 	{
-		wtxs[i] = non_empty_gen(r, tf, wtxis[i], wtxs[i].dim.pos());
+		wtxs[i] = gen_text(r, tf, wtxis[i], wtxs[i].dim.pos());
 	}
 }
 
@@ -55,16 +55,12 @@ inline void add_character(char ch, WorldTextInfo &stxi)
  * @param stxi Text info to modify
  * @return If text has no text
  */
-inline auto remove_character(WorldTextInfo &stxi) -> bool
+inline void remove_character(WorldTextInfo &stxi)
 {
 	if (stxi.str.empty())
-		return true;
-
-	const auto will_empty = stxi.str.size() == 1;
+		return;
 
 	stxi.str.pop_back();
-
-	return will_empty;
 }
 
 /**
@@ -75,12 +71,25 @@ inline auto remove_character(WorldTextInfo &stxi) -> bool
  *
  * @return Text and Info pair
  */
-inline auto start_new_text(mth::Point<float> wp, float scale) -> std::pair<WorldTextInfo, WorldTexture>
+inline auto start_new_text(Renderer &r, TextFont &f, mth::Point<float> wp, float scale) -> std::pair<WorldTextInfo, WorldTexture>
 {
 	WorldTextInfo wtxi = { .str = "", .scale = scale };
-	WorldTexture  wtx  = { .dim = { wp.x, wp.y, 0, 0 }, .data = {} };
+	WorldTexture  wtx  = gen_text(r, f, wtxi, wp);
 
 	return { std::move(wtxi), std::move(wtx) };
+}
+
+inline void start_text_input()
+{
+	SDL_StartTextInput();
+	// SDL_FlushEvent(SDL_TEXTINPUT); // Text appears on previous keypress
+	ctl::print("Start text input\n");
+}
+
+inline void stop_text_input()
+{
+	SDL_StopTextInput();
+	ctl::print("End text input\n");
 }
 
 /**
