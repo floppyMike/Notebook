@@ -370,6 +370,8 @@ public:
 
 		c.txf.data = std::move(*f);
 
+		sdl::push_event(0, EVENT_DRAW);
+
 		debug_init(r, c);
 	}
 

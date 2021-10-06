@@ -7,17 +7,40 @@
 #include "renderer.h"
 #include "layout.h"
 
+/**
+ * @brief Calculate the necessary bar size to fill in for icons
+ * @param icon_n icon amount
+ * @return Dimensions of the box
+ */
 constexpr auto bar_size(int icon_n) -> mth::Dim<int>
 {
 	return { icon_n * (ICON_SIZE + SEPERATION) + SEPERATION, 2 * SEPERATION + ICON_SIZE };
 }
 
+/**
+ * @brief Align the box to the bottom of the screen
+ *
+ * @param w Get the window size
+ * @param d Bar size
+ *
+ * @return Screen location for bar
+ */
 inline auto mid_bottom(const Window &w, mth::Dim<int> d) -> mth::Point<int>
 {
 	const auto win = w.get_windowsize();
 	return { (win.w - d.w) / 2, win.h - d.h };
 }
 
+/**
+ * @brief Generate the bar texture
+ *
+ * @param r Renderer to draw to
+ * @param icon_map Texture map of icons
+ * @param icons Icons configuration
+ * @param selection selected icon
+ *
+ * @return Bar texture
+ */
 inline auto gen_bar(Renderer &r, const Renderer::Texture &icon_map, IconDB &icons, size_t selection) -> Bar
 {
 	const auto bar = bar_size((int)icons.size());

@@ -27,6 +27,7 @@ using IconDB = std::vector<Icon>;
 struct BarContext
 {
 	Renderer::Texture icon_map;
-	Bar				  bar;
-	IconDB			  icons;
+
+	Bar	   bar;
+	IconDB icons;
 };
