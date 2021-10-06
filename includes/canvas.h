@@ -79,9 +79,23 @@ inline void handle_general(const SDL_Event &e, const KeyEvent &ke, const Window 
 		break;
 	}
 
+	case EVENT_QUICKSAVE:
+		if (c.save_path.empty())
+		{
+			sdl::push_event(e.user.windowID, EVENT_SAVE);
+			break;
+		}
+
+		save(c, c.save_path.c_str());
+
+		break;
+
 	case EVENT_SAVE:
 		if (const auto filename = open_file_save(); filename)
+		{
 			save(c, filename->c_str());
+			c.save_path = *filename;
+		}
 
 		break;
 
@@ -96,6 +110,8 @@ inline void handle_general(const SDL_Event &e, const KeyEvent &ke, const Window 
 			regen_texts(r, c.txf, c.txwts, c.txwtxis);
 
 			r.refresh();
+
+			c.save_path = *filename;
 		}
 
 		break;

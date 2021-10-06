@@ -138,6 +138,8 @@ struct CanvasContext : SaveState
 
 	std::optional<mth::Point<float>> start_mp;
 
+	std::string save_path;
+
 #ifndef NDEBUG
 	CanvasDebug debug;
 #endif

@@ -20,7 +20,7 @@ public:
 		c.icon_map = std::move(*bmp);
 
 		c.icons = {
-			{ .id = EVENT_SELECT }, { .id = EVENT_DRAW }, { .id = EVENT_TYPE },
+			{ .id = EVENT_SELECT }, { .id = EVENT_DRAW }, { .id = EVENT_QUICKSAVE },
 			{ .id = EVENT_SAVE },	{ .id = EVENT_LOAD },
 		};
 
@@ -44,7 +44,6 @@ public:
 		{
 		case EVENT_DRAW:
 		case EVENT_SELECT:
-		case EVENT_TYPE:
 			c.bar = gen_bar(r, c.icon_map, c.icons, e.type);
 			r.refresh();
 
