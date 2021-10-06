@@ -26,9 +26,6 @@ inline void init_typing(CanvasContext &c)
 {
 	ctl::print("Typing\n");
 	c.status = CanvasStatus::TYPING;
-
-	SDL_StartTextInput();
-	SDL_FlushEvent(SDL_TEXTINPUT); // Text appears on previous keypress
 }
 
 inline void init_select(CanvasContext &c)
@@ -43,13 +40,15 @@ inline void deinit_painting(CanvasContext &c)
 
 inline void deinit_typing(CanvasContext &c)
 {
-	flush_text(c.txet, c.txei, c.txwts, c.txwtxis);
-	SDL_StopTextInput();
+	// flush_text(c.txet, c.txei, c.txwts, c.txwtxis);
 }
 
 inline void deinit_select(CanvasContext &c)
 {
-	c.select.wts = nullptr;
+	if (c.select.type == CanvasType::TEXT)
+		stop_text_input();
+
+	c.select = Select{ .idx = (size_t)-1, .wt = nullptr, .type = CanvasType::NONE };
 }
 
 // -----------------------------------------------------------------------------
@@ -80,9 +79,23 @@ inline void handle_general(const SDL_Event &e, const KeyEvent &ke, const Window 
 		break;
 	}
 
+	case EVENT_QUICKSAVE:
+		if (c.save_path.empty())
+		{
+			sdl::push_event(e.user.windowID, EVENT_SAVE);
+			break;
+		}
+
+		save(c, c.save_path.c_str());
+
+		break;
+
 	case EVENT_SAVE:
 		if (const auto filename = open_file_save(); filename)
+		{
 			save(c, filename->c_str());
+			c.save_path = *filename;
+		}
 
 		break;
 
@@ -97,6 +110,8 @@ inline void handle_general(const SDL_Event &e, const KeyEvent &ke, const Window 
 			regen_texts(r, c.txf, c.txwts, c.txwtxis);
 
 			r.refresh();
+
+			c.save_path = *filename;
 		}
 
 		break;
@@ -108,7 +123,6 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 	switch (e.type)
 	{
 	case EVENT_SELECT: init_select(c); break;
-	case EVENT_TYPE: init_typing(c); break;
 
 	case SDL_KEYDOWN:
 		switch (e.key.keysym.sym)
@@ -129,7 +143,7 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 			r.refresh();
 		}
 
-		else if (ke.test(KeyEventMap::MOUSE_RIGHT) && c.erase_mp)
+		else if (ke.test(KeyEventMap::MOUSE_RIGHT) && c.start_mp)
 		{
 			r.refresh();
 		}
@@ -145,7 +159,7 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 
 			break;
 
-		case SDL_BUTTON_RIGHT: c.erase_mp = c.cam.screen_world(sdl::mouse_position()); break;
+		case SDL_BUTTON_RIGHT: c.start_mp = c.cam.screen_world(sdl::mouse_position()); break;
 		}
 
 		break;
@@ -171,17 +185,17 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 			break;
 
 		case SDL_BUTTON_RIGHT:
-			if (c.erase_mp)
+			if (c.start_mp)
 			{
 				const auto wp = c.cam.screen_world(sdl::mouse_position());
 
-				auto col = find_line_intersections(c.swts, c.swls, c.swlis, mth::Line<float>::from(*c.erase_mp, wp));
+				auto col = find_line_intersections(c.swts, c.swls, c.swlis, mth::Line<float>::from(*c.start_mp, wp));
 				std::sort(col.rbegin(), col.rend()); // Avoid deletion of empty cells
 
 				for (size_t i : col) erase(i, c.swts, c.swls, c.swlis);
 
 				r.refresh();
-				c.erase_mp.reset();
+				c.start_mp.reset();
 			}
 
 			break;
@@ -195,47 +209,28 @@ inline void handle_typing(const SDL_Event &e, const KeyEvent &ke, const Window &
 {
 	switch (e.type)
 	{
-	case SDL_MOUSEBUTTONDOWN:
-		if (e.button.button == SDL_BUTTON_LEFT)
-		{
-			flush_text(c.txet, c.txei, c.txwts, c.txwtxis);
-
-			const auto wp			 = c.cam.screen_world(sdl::mouse_position());
-			std::tie(c.txei, c.txet) = start_new_text(wp, c.cam.scale);
-		}
-
-		break;
-
-	case EVENT_DRAW:
-		deinit_typing(c);
-		init_painting(c);
-
-		break;
-
-	case EVENT_SELECT:
-		deinit_typing(c);
-		init_select(c);
-
-		break;
-
 	case SDL_KEYDOWN:
 		switch (e.key.keysym.sym)
 		{
-		case SDLK_ESCAPE: sdl::push_event(e.button.windowID, EVENT_DRAW); break;
+		case SDLK_DELETE:
+			erase(c.select.idx, c.txwts, c.txwtxis);
+
+			stop_text_input();
+			c.select = Select{ .idx = (size_t)-1, .wt = nullptr, .type = CanvasType::NONE };
+
+			break;
 
 		case SDLK_BACKSPACE:
-			if (!remove_character(c.txei))
-				c.txet = non_empty_gen(r, c.txf, c.txei, c.txet.dim.pos());
-			else
-				c.txet = { .data = nullptr };
+			remove_character(c.txwtxis[c.select.idx]);
+			c.txwts[c.select.idx] = gen_text(r, c.txf, c.txwtxis[c.select.idx], c.txwts[c.select.idx].dim.pos());
 
 			r.refresh();
 
 			break;
 
 		case SDLK_RETURN:
-			add_character('\n', c.txei);
-			c.txet = non_empty_gen(r, c.txf, c.txei, c.txet.dim.pos());
+			add_character('\n', c.txwtxis[c.select.idx]);
+			c.txwts[c.select.idx] = gen_text(r, c.txf, c.txwtxis[c.select.idx], c.txwts[c.select.idx].dim.pos());
 
 			r.refresh();
 
@@ -245,8 +240,8 @@ inline void handle_typing(const SDL_Event &e, const KeyEvent &ke, const Window &
 		break;
 
 	case SDL_TEXTINPUT:
-		add_character(e.text.text[0], c.txei);
-		c.txet = non_empty_gen(r, c.txf, c.txei, c.txet.dim.pos());
+		add_character(e.text.text[0], c.txwtxis[c.select.idx]);
+		c.txwts[c.select.idx] = gen_text(r, c.txf, c.txwtxis[c.select.idx], c.txwts[c.select.idx].dim.pos());
 
 		r.refresh();
 
@@ -264,9 +259,26 @@ inline void handle_selecting(const SDL_Event &e, const KeyEvent &ke, const Windo
 
 		break;
 
-	case EVENT_TYPE:
-		deinit_select(c);
-		init_typing(c);
+	case SDL_MOUSEMOTION:
+		if (ke.test(KeyEventMap::MOUSE_LEFT))
+		{
+			if (c.select.wt != nullptr)
+			{
+				c.select.wt->dim.x += e.motion.xrel / c.cam.scale;
+				c.select.wt->dim.y += e.motion.yrel / c.cam.scale;
+
+				r.refresh();
+			}
+		}
+
+		break;
+
+	case SDL_MOUSEBUTTONUP:
+		if (e.button.button == SDL_BUTTON_LEFT)
+		{
+			ctl::print("Reset temp line\n");
+			c.start_mp.reset();
+		}
 
 		break;
 
@@ -275,28 +287,41 @@ inline void handle_selecting(const SDL_Event &e, const KeyEvent &ke, const Windo
 		{
 			const auto wp = c.cam.screen_world(sdl::mouse_position());
 
-			WorldTexture *selected;
-			CanvasType	  ct;
+			if (e.button.clicks == 2)
+			{
+				auto [txi, txt] = start_new_text(r, c.txf, wp, c.cam.scale);
 
-			if ((ct = CanvasType::STROKE, selected = start_selecting(r, c.swts, wp)) == nullptr)
-				ct = CanvasType::TEXT, selected = start_selecting(r, c.txwts, wp);
+				c.txwts.push_back(std::move(txt));
+				c.txwtxis.push_back(std::move(txi));
 
-			c.select = { .wts = selected, .type = ct };
-			r.refresh();
+				start_text_input();
+			}
+
+			c.select = start_selecting(c.swts, c.txwts, wp);
+
+			ctl::print("Index: %d\n", c.select.idx);
+
+			if (c.select.type == CanvasType::NONE)
+			{
+				ctl::print("Nothing selected\n");
+				c.start_mp = wp;
+			}
+			else
+			{
+				ctl::print("Something selected\n");
+
+				if (c.select.type != CanvasType::TEXT)
+					stop_text_input();
+
+				r.refresh();
+			}
 		}
 
 		break;
 
-	case SDL_MOUSEMOTION:
-		if (ke.test(KeyEventMap::MOUSE_LEFT) && c.select.wts != nullptr)
-		{
-			c.select.wts->dim.x += e.motion.xrel / c.cam.scale;
-			c.select.wts->dim.y += e.motion.yrel / c.cam.scale;
-
-			r.refresh();
-		}
-
-		break;
+	default:
+		if (c.select.type == CanvasType::TEXT)
+			handle_typing(e, ke, w, r, c);
 	}
 }
 
@@ -315,9 +340,9 @@ inline void draw_strokes(const Renderer &r, CanvasContext &c)
 	if (c.sst.data)
 		r.draw_texture(c.sst.data, c.sst.dim);
 
-	if (c.erase_mp)
+	if (c.status == CanvasStatus::PAINTING && c.start_mp)
 	{
-		const auto e = c.cam.world_screen(*c.erase_mp);
+		const auto e = c.cam.world_screen(*c.start_mp);
 
 		r.set_draw_color(sdl::GRAY);
 		r.draw_line(e, sdl::mouse_position());
@@ -331,20 +356,14 @@ inline void draw_texts(const Renderer &r, CanvasContext &c)
 		const auto world = c.cam.world_screen(t.dim);
 		r.draw_texture(t.data, world);
 	}
-
-	if (c.txet.data != nullptr)
-	{
-		const auto world = c.cam.world_screen(c.txet.dim);
-		r.draw_texture(c.txet.data, world);
-	}
 }
 
 inline void draw_selection(const Renderer &r, CanvasContext &c)
 {
-	if (c.select.wts != nullptr)
+	if (c.select.wt != nullptr)
 	{
 		r.set_draw_color(sdl::BLUE);
-		r.draw_rect(c.cam.world_screen(c.select.wts->dim));
+		r.draw_rect(c.cam.world_screen(c.select.wt->dim));
 	}
 }
 
@@ -366,6 +385,8 @@ public:
 			throw std::runtime_error("Font file not found.");
 
 		c.txf.data = std::move(*f);
+
+		sdl::push_event(0, EVENT_DRAW);
 
 		debug_init(r, c);
 	}
