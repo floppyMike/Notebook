@@ -1,8 +1,9 @@
 #pragma once
 
-#include "renderer/sdl2.h"
+#include "renderer.h"
+#include "status.h"
+
 #include <CustomLibrary/Geometry.h>
-#include <CustomLibrary/SDL/Event.h>
 
 using namespace ctl;
 
@@ -13,7 +14,6 @@ static constexpr auto SEPERATION = 10;
 struct Icon
 {
 	mth::Rect<int> dim;
-	int			   id;
 };
 
 struct Bar
@@ -29,5 +29,5 @@ struct BarContext
 	Renderer::Texture icon_map;
 
 	Bar	   bar;
-	IconDB icons;
+	IconDB icons = IconDB(EVENT_ALL); // Preload all icons
 };

@@ -56,6 +56,8 @@ inline auto gen_bar(Renderer &r, const Renderer::Texture &icon_map, IconDB &icon
 		r.draw_frame(icon_map, s, d);
 		icons[i].dim = d;
 	}
+	
+	assert(icons.size() > selection);
 
 	r.set_draw_color(sdl::GREEN);
 	r.draw_rect(icons[selection].dim);

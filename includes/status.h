@@ -14,4 +14,6 @@ enum Event
 	EVENT_QUICKSAVE,
 	EVENT_SAVE,
 	EVENT_LOAD,
+
+	EVENT_ALL,
 };

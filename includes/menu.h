@@ -7,24 +7,25 @@
 #include "menu/layout.h"
 #include "menu/bar.h"
 
+/**
+ * @brief Load the iconmap from file
+ */
+inline void load_iconmap(Renderer &r, BarContext &c)
+{
+	auto bmp = r.load_bmp("res/Icons.bmp");
+
+	if (!bmp)
+		throw std::runtime_error("File res/Icons.bmp not found.");
+
+	c.icon_map = std::move(*bmp);
+}
+
 class Menu
 {
 public:
 	void init(const Window &w, Renderer &r)
 	{
-		auto bmp = r.load_bmp("res/Icons.bmp");
-
-		if (!bmp)
-			throw std::runtime_error("File res/Icons.bmp not found.");
-
-		c.icon_map = std::move(*bmp);
-
-		c.icons = {
-			{ .id = EVENT_SELECT }, { .id = EVENT_DRAW }, { .id = EVENT_QUICKSAVE },
-			{ .id = EVENT_SAVE },	{ .id = EVENT_LOAD },
-		};
-
-		c.bar = gen_bar(r, c.icon_map, c.icons, 0);
+		load_iconmap(r, c);
 
 		const auto p = mid_bottom(w, c.bar.dim.dim());
 		c.bar.dim.pos(p);
@@ -44,6 +45,7 @@ public:
 		{
 		case EVENT_DRAW:
 		case EVENT_SELECT:
+			ctl::print("Bar select: %d\n", e.type);
 			c.bar = gen_bar(r, c.icon_map, c.icons, e.type);
 			r.refresh();
 
@@ -56,9 +58,7 @@ public:
 				if (const auto mp = sdl::mouse_position(); mth::collision(c.bar.dim, mp))
 					if (const auto f = intersect_bar(c.bar.dim.pos(), c.icons, mp); f != c.icons.end())
 					{
-						SDL_Event event = sdl::create_event(e.button.windowID, f->id);
-						SDL_PushEvent(&event);
-
+						sdl::push_event(e.button.windowID, std::distance(c.icons.cbegin(), f));
 						return false;
 					}
 
