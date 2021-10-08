@@ -179,12 +179,11 @@ inline auto find_line_intersections(const WorldTextureDB &wts, const WorldLineDB
 	std::vector<size_t> idx;
 
 	for (size_t i = 0; i < wts.size(); ++i)
-	{
 		if (mth::collision(ml, wts[i].dim))
 		{
 			const auto &ps = wls[i].points;
 
-			if (ps.size() < 5)
+			if (ps.size() < 5) // If dot-like texture (also protects search)
 			{
 				idx.push_back(i);
 				continue;
@@ -197,7 +196,6 @@ inline auto find_line_intersections(const WorldTextureDB &wts, const WorldLineDB
 					break;
 				}
 		}
-	}
 
 	return idx;
 }
@@ -208,7 +206,7 @@ inline auto find_line_intersections(const WorldTextureDB &wts, const WorldLineDB
  * @param r Draw & render lines onto textures
  * @param c Store the generated textures
  */
-inline void redraw(Renderer &r, WorldTextureDB &wts, const WorldLineDB &wls, const WorldLineInfoDB &wlis)
+inline void regen_strokes(Renderer &r, WorldTextureDB &wts, const WorldLineDB &wls, const WorldLineInfoDB &wlis)
 {
 	for (size_t i = 0; i < wts.size(); ++i)
 	{
@@ -221,9 +219,6 @@ inline void redraw(Renderer &r, WorldTextureDB &wts, const WorldLineDB &wls, con
 		const auto t_size = cam.world_screen(mth::Dim<float>{ wt.dim.w, wt.dim.h });
 		auto	   t	  = r.create_stroke_texture(t_size.w, t_size.h);
 		const auto rad	  = wli.radius;
-
-		if (rad < 1)
-			throw std::runtime_error("Stroke radius is under 1");
 
 		r.set_stroke_color(wli.color);
 		r.set_stroke_target(t, { 0, 0, t_size.w, t_size.h }, rad);
@@ -239,7 +234,14 @@ inline void redraw(Renderer &r, WorldTextureDB &wts, const WorldLineDB &wls, con
 	}
 }
 
-inline void change_radius(Renderer &r, const sdl::Camera2D &cam, ScreenLineInfo &sli, int rad)
+/**
+ * @brief Change the on screen stroke radius
+ *
+ * @param cam Calculate stroke radius relative to camera
+ * @param sli Load the new stroke radius into
+ * @param rad New stroke radius
+ */
+inline void change_radius(const sdl::Camera2D &cam, ScreenLineInfo &sli, int rad)
 {
 	if (sli.i_rad != rad)
 	{
@@ -248,4 +250,20 @@ inline void change_radius(Renderer &r, const sdl::Camera2D &cam, ScreenLineInfo 
 	}
 
 	sli.radius = sli.i_rad * cam.scale;
+}
+
+/**
+ * @brief Called when painting is to be done
+ */
+inline void start_painting(CanvasContext &c)
+{
+	ctl::print("Painting\n");
+	c.status = CanvasStatus::PAINTING;
+}
+
+/**
+ * @brief Called when painting has stopped and the state is switched
+ */
+inline void stop_painting(CanvasContext &c)
+{
 }

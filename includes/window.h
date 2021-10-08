@@ -24,6 +24,8 @@ public:
 
 	auto create_renderer() const -> Renderer
 	{
+		assert(m_con.win);
+
 		Renderer r;
 		r.init(m_con.win.get());
 		return r;
@@ -31,10 +33,18 @@ public:
 
 	auto get_windowsize() const -> mth::Dim<int>
 	{
+		assert(m_con.win);
+
 		mth::Dim<int> dim;
 		SDL_GetWindowSize(m_con.win.get(), &dim.w, &dim.h);
 
 		return dim;
+	}
+
+	auto get_windowid() const -> uint32_t
+	{
+		assert(m_con.win);
+		return SDL_GetWindowID(m_con.win.get());
 	}
 
 private:

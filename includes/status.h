@@ -1,9 +1,10 @@
 #pragma once
 
-enum class Status
+enum class CanvasStatus
 {
 	PAINTING,
 	TYPING,
+	SELECTING,
 };
 
 enum Event

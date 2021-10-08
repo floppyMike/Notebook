@@ -23,6 +23,8 @@ public:
 
 		m_canvas.init(m_r);
 		m_menu.init(m_w, m_r);
+
+		sdl::push_event(m_w.get_windowid(), EVENT_DRAW);
 	}
 
 	void pre_pass()
