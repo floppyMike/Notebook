@@ -60,6 +60,30 @@ inline void handle_general(const SDL_Event &e, const KeyEvent &ke, const Window 
 {
 	switch (e.type)
 	{
+	case SDL_KEYDOWN:
+		switch (e.key.keysym.sym)
+		{
+		case SDLK_PLUS:
+			zoom_camera(c, 10.F);
+			r.refresh();
+
+			break;
+
+		case SDLK_MINUS:
+			zoom_camera(c, -1.F);
+			r.refresh();
+
+			break;
+		}
+
+		break;
+
+	case SDL_FINGERMOTION:
+		move_camera(c, (float)-e.tfinger.dx, (float)-e.tfinger.dy);
+		r.refresh();
+
+		break;
+
 	case SDL_MOUSEMOTION:
 		if (ke.test(KeyEventMap::MOUSE_MIDDLE))
 		{
@@ -70,12 +94,10 @@ inline void handle_general(const SDL_Event &e, const KeyEvent &ke, const Window 
 		break;
 
 	case SDL_MOUSEWHEEL:
-	{
 		zoom_camera(c, (float)e.wheel.y);
 		r.refresh();
 
 		break;
-	}
 
 	case EVENT_QUICKSAVE:
 		if (!got_filename(c))
