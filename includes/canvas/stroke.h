@@ -173,16 +173,19 @@ inline void clear_target_line(ScreenTexture &st, ScreenLine &sl)
  *
  * @return Collection of indexes for collisions
  */
-inline auto find_line_intersections(const WorldTextureDB &wts, const WorldLineDB &wls, const WorldLineInfoDB &wlis,
-									mth::Line<float> ml) -> std::vector<size_t>
+inline auto find_line_intersections(const WorldTextureDB &wts, const WorldLineDB &wls, mth::Line<float> ml)
+	-> std::vector<size_t>
 {
 	std::vector<size_t> idx;
 
-	for (size_t i = 0; i < wts.size(); ++i)
-		if (mth::collision(ml, wts[i].dim))
-		{
-			const auto &ps = wls[i].points;
+	// for (const WorldLine &wl : wls)
+	for (size_t i = 0; i < wls.size(); ++i)
+	{
+		const auto &ps	= wls[i].points;
+		const auto &tex = wts[wls[i].idx];
 
+		if (mth::collision(ml, tex.dim))
+		{
 			if (ps.size() < 5) // If dot-like texture (also protects search)
 			{
 				idx.push_back(i);
@@ -190,12 +193,13 @@ inline auto find_line_intersections(const WorldTextureDB &wts, const WorldLineDB
 			}
 
 			for (auto ii = ps.begin(); ii != ps.end() - 1; ++ii)
-				if (mth::collision(mth::Line<float>::from(*ii + wts[i].dim.pos(), *(ii + 1) + wts[i].dim.pos()), ml))
+				if (mth::collision(mth::Line<float>::from(*ii + tex.dim.pos(), *(ii + 1) + tex.dim.pos()), ml))
 				{
 					idx.push_back(i);
 					break;
 				}
 		}
+	}
 
 	return idx;
 }

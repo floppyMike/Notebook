@@ -14,7 +14,7 @@
 /**
  * @brief Check if the stroke has started
  */
-inline auto stroke_started(CanvasContext &c) -> bool
+inline auto stroke_started(const CanvasContext &c) -> bool
 {
 	return c.sst.data != nullptr;
 }
@@ -22,7 +22,7 @@ inline auto stroke_started(CanvasContext &c) -> bool
 /**
  * @brief Check if the erase line has started
  */
-inline auto erase_started(CanvasContext &c) -> bool
+inline auto erase_started(const CanvasContext &c) -> bool
 {
 	return c.start_mp.has_value();
 }
@@ -34,7 +34,9 @@ inline void add_stroke(CanvasContext &c)
 {
 	auto [wt, wl, wli] = transform_target_line(c.cam, c.sst, c.ssl, c.ssli);
 
-	c.swts.push_back(std::move(wt));
+	wl.idx = c.swls.size();
+	c.wts.push_back(std::move(wt));
+
 	c.swls.push_back(std::move(wl));
 	c.swlis.push_back(wli);
 
@@ -56,10 +58,13 @@ inline void erase_path(CanvasContext &c)
 {
 	const auto wp = c.cam.screen_world(sdl::mouse_position());
 
-	auto col = find_line_intersections(c.swts, c.swls, c.swlis, mth::Line<float>::from(*c.start_mp, wp));
-	std::sort(col.rbegin(), col.rend()); // Avoid deletion of empty cells
+	auto col = find_line_intersections(c.wts, c.swls, mth::Line<float>::from(*c.start_mp, wp));
 
-	for (size_t i : col) erase(i, c.swts, c.swls, c.swlis);
+	for (size_t i : col) c.wts[c.swls[i].idx].data = nullptr;
+	c.wts.erase(std::remove_if(c.wts.begin(), c.wts.end(), [](const WorldTexture &w) { return w.data == nullptr; }),
+				c.wts.end());
+
+	for (size_t i : col) erase(i, c.swls, c.swlis);
 }
 
 /**
@@ -86,8 +91,10 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
 		case SDLK_DOWN: change_radius(c.cam, c.ssli, c.ssli.i_rad - 1); break;
 
 		// Color selection shortcuts
-		case SDLK_r: c.ssli.color = sdl::RED; break;
 		case SDLK_b: c.ssli.color = sdl::BLACK; break;
+		case SDLK_r: c.ssli.color = sdl::RED; break;
+		case SDLK_g: c.ssli.color = sdl::GREEN; break;
+		case SDLK_o: c.ssli.color = sdl::ORANGE; break;
 		}
 
 		break;
@@ -156,7 +163,7 @@ inline void handle_paint(const SDL_Event &e, const KeyEvent &ke, Window &w, Rend
  */
 inline void draw_strokes(const Renderer &r, CanvasContext &c)
 {
-	for (const auto &t : c.swts)
+	for (const auto &t : c.wts)
 	{
 		const auto world = c.cam.world_screen(t.dim);
 		r.draw_texture(t.data, world);

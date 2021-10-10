@@ -10,12 +10,29 @@
 using namespace ctl;
 
 // -----------------------------------------------------------------------------
+// Textures
+// -----------------------------------------------------------------------------
+
+struct WorldTexture
+{
+	mth::Rect<float>  dim;
+	Renderer::Texture data;
+};
+
+struct ScreenTexture
+{
+	mth::Rect<int>		   dim;
+	Renderer::CacheTexture data;
+};
+
+// -----------------------------------------------------------------------------
 // Lines
 // -----------------------------------------------------------------------------
 
 struct WorldLine
 {
 	std::vector<mth::Point<float>> points;
+	size_t						   idx;
 };
 
 struct WorldLineInfo
@@ -36,22 +53,6 @@ struct ScreenLineInfo
 
 	int	  i_rad;
 	float radius;
-};
-
-// -----------------------------------------------------------------------------
-// Textures
-// -----------------------------------------------------------------------------
-
-struct WorldTexture
-{
-	mth::Rect<float>  dim;
-	Renderer::Texture data;
-};
-
-struct ScreenTexture
-{
-	mth::Rect<int>		   dim;
-	Renderer::CacheTexture data;
 };
 
 // -----------------------------------------------------------------------------
@@ -108,6 +109,8 @@ using WorldLineInfoDB = std::vector<WorldLineInfo>;
 
 using WorldTextInfoDB = std::vector<WorldTextInfo>;
 
+using IndexDB = std::vector<size_t>;
+
 // -----------------------------------------------------------------------------
 // Context
 // -----------------------------------------------------------------------------
@@ -120,7 +123,9 @@ struct SaveState
 
 	WorldLineDB		swls;
 	WorldLineInfoDB swlis;
-	WorldTextureDB	swts;
+	// WorldTextureDB	swts;
+
+	WorldTextureDB	wts;
 
 	WorldTextureDB	txwts;
 	WorldTextInfoDB txwtxis;
