@@ -38,3 +38,7 @@ compile_commands.json
 cmake-build-*/
 save.xml
 .vs/
+
+# Added by cargo
+
+/target
